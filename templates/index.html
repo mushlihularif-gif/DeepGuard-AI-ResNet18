@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepGuard AI — Platform Deteksi Citra Palsu & Rekayasa Generative AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="/static/img/logo_deteksi_citra_ai.png">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="brand">
+                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI Logo" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title">DeepGuard AI</span>
+                    <span class="brand-pill">FORENSICS</span>
+                </div>
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="active"><i class="fa-solid fa-house"></i> Beranda</a></li>
+                    <li><a href="deteksi.html"><i class="fa-solid fa-crosshairs"></i> Deteksi Citra</a></li>
+                    <li><a href="panduan.html"><i class="fa-solid fa-book-bookmark"></i> Cara Kerja</a></li>
+                    <li><a href="tentang.html"><i class="fa-solid fa-circle-info"></i> Tentang Kami</a></li>
+                    <li><a href="deteksi.html" class="btn btn-sm nav-cta"><i class="fa-solid fa-bolt"></i> Pindai Citra</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="main-content">
+
+        <!-- Hero Section: Dynamic Greeting & Live Scanner -->
+        <section class="hero-box">
+            <div>
+                <div class="status-pill">
+                    <span class="pulse-dot"></span>
+                    <span>NEURAL FORENSIC ENGINE ONLINE</span>
+                </div>
+
+                <h1 class="hero-title-main">
+                    Deteksi Keaslian Citra Digital & <span class="gradient-text">Manipulasi AI</span>
+                </h1>
+
+                <!-- Sapaan Dinamis & Tagline Berganti-ganti -->
+                <div class="dynamic-greeting-wrap">
+                    <span id="dynamicGreeting" class="dynamic-greeting">Scan dengan ini untuk mendeteksi keaslian gambar</span>
+                    <span class="typing-cursor"></span>
+                </div>
+
+                <p class="hero-desc">
+                    Identifikasi citra sintetis hasil model Generative AI, pemalsuan bukti visual, dan rekayasa deepfake secara instan. Membedah pola artefak mikroskopis domain spasial dan frekuensi piksel menggunakan jaringan saraf konvolusi ResNet18.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="deteksi.html" class="btn btn-primary">
+                        <i class="fa-solid fa-crosshairs"></i> Buka Scanner Sekarang
+                    </a>
+                    <a href="panduan.html" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-right"></i> Pelajari Cara Kerja
+                    </a>
+                </div>
+
+                <!-- Mini Metric Strip -->
+                <div class="hero-metrics-strip">
+                    <span><i class="fa-solid fa-bolt" style="color: var(--primary);"></i> Inferensi <strong>&sim;35ms</strong></span>
+                    <span><i class="fa-solid fa-shield-check" style="color: var(--real-color);"></i> Privasi <strong>In-Memory</strong></span>
+                    <span><i class="fa-solid fa-microchip" style="color: var(--primary);"></i> Arsitektur <strong>ResNet18</strong></span>
+                </div>
+            </div>
+
+            <!-- Live Scanner Showcase: Garis Pemindai Bergerak Naik-Turun -->
+            <div class="hero-scanner-card">
+                <div class="scanner-top-telemetry">
+                    <div class="scanner-mode-badge">
+                        <span class="pulse-dot"></span>
+                        <span>SCANNER AKTIF</span>
+                    </div>
+                    <span>TENSOR: 224&times;224 RGB</span>
+                </div>
+
+                <div class="scanner-viewport">
+                    <!-- Ilustrasi Vektor Forensik Digital -->
+                    <svg class="scanner-image-layer" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="meshGradient" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.22"/>
+                                <stop offset="100%" stop-color="#05080e" stop-opacity="0.95"/>
+                            </radialGradient>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#meshGradient)"/>
+                        
+                        <!-- Landmark & Wireframe Mesh Forensik -->
+                        <circle cx="200" cy="110" r="62" fill="none" stroke="rgba(0, 212, 255, 0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
+                        <circle cx="200" cy="110" r="38" fill="none" stroke="rgba(129, 140, 248, 0.4)" stroke-width="1"/>
+                        <circle cx="175" cy="98" r="6" fill="rgba(0, 212, 255, 0.25)" stroke="#00d4ff" stroke-width="1.5"/>
+                        <circle cx="225" cy="98" r="6" fill="rgba(0, 212, 255, 0.25)" stroke="#00d4ff" stroke-width="1.5"/>
+                        <path d="M190 115 L200 126 L210 115" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+                        <path d="M182 142 Q200 156 218 142" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+                        
+                        <polygon points="175,98 200,80 225,98 200,126" fill="rgba(0, 212, 255, 0.05)" stroke="rgba(0, 212, 255, 0.3)" stroke-width="1"/>
+                        <polygon points="175,98 152,118 182,142 200,126" fill="rgba(129, 140, 248, 0.05)" stroke="rgba(129, 140, 248, 0.25)" stroke-width="1"/>
+                        <polygon points="225,98 248,118 218,142 200,126" fill="rgba(129, 140, 248, 0.05)" stroke="rgba(129, 140, 248, 0.25)" stroke-width="1"/>
+                        
+                        <circle cx="152" cy="70" r="2.5" fill="#00d4ff"/>
+                        <circle cx="248" cy="70" r="2.5" fill="#00d4ff"/>
+                        <circle cx="135" cy="155" r="2.5" fill="#00d4ff"/>
+                        <circle cx="265" cy="155" r="2.5" fill="#00d4ff"/>
+                        <circle cx="200" cy="180" r="2.5" fill="#818cf8"/>
+                    </svg>
+
+                    <!-- Overlay Grid Forensik -->
+                    <div class="scanner-grid-overlay"></div>
+
+                    <!-- Sudut Bidik HUD (Corner Reticles) -->
+                    <div class="hud-corner tl"></div>
+                    <div class="hud-corner tr"></div>
+                    <div class="hud-corner bl"></div>
+                    <div class="hud-corner br"></div>
+
+                    <!-- Center Crosshair -->
+                    <div class="hud-center-cross"></div>
+
+                    <!-- GARIS SCANNING LASER NAIK TURUN (LIVE ANIMATION) -->
+                    <div class="laser-scan-line"></div>
+                    <div class="laser-scan-trail"></div>
+                </div>
+
+                <div class="scanner-bottom-telemetry">
+                    <span class="scanner-status-text" id="scannerStatusReadout">MEMINDAI ARTEFAK SINTETIS...</span>
+                    <span class="scanner-metric-pill" id="scannerCoords">SOFTMAX: CONFIDENCE CHECK</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ringkasan Nilai Keunggulan (3 Feature Cards) -->
+        <section class="grid-3" style="margin-bottom: 28px;">
+            <div class="feature-card">
+                <div class="feature-icon-box">
+                    <i class="fa-solid fa-microscope"></i>
+                </div>
+                <h3 class="feature-title">Analisis Artefak Piksel</h3>
+                <p class="feature-desc">
+                    Mendeteksi anomali pola konvolusi dan inkonsistensi tekstur mikro yang kerap ditinggalkan oleh generator difusi AI.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon-box">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="feature-title">Privasi Tanpa Retensi</h3>
+                <p class="feature-desc">
+                    Berkas citra hanya diolah secara <em>in-memory</em> di memori RAM dan langsung dihapus tuntas tanpa disimpan di disk atau database.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon-box">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <h3 class="feature-title">Metrik Probabilitas Terukur</h3>
+                <p class="feature-desc">
+                    Menyajikan persentase keyakinan Softmax yang transparan untuk membedakan citra kamera fisik asli (Real) dan sintesis AI (Fake).
+                </p>
+            </div>
+        </section>
+
+        <!-- Benchmark Metrik Utama -->
+        <section class="grid-4" style="margin-bottom: 28px;">
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
+                <div class="metric-value">72,0%</div>
+                <div class="metric-label">Akurasi Uji Validasi</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-crosshairs"></i></div>
+                <div class="metric-value">0,78</div>
+                <div class="metric-label">Presisi Deteksi AI</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
+                <div class="metric-value">&lt; 50ms</div>
+                <div class="metric-label">Latensi Inferensi</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-database"></i></div>
+                <div class="metric-value">0 Byte</div>
+                <div class="metric-label">Retensi Penyimpanan</div>
+            </div>
+        </section>
+
+        <!-- Call to Action Banner -->
+        <section class="card" style="text-align: center; padding: 36px 20px;">
+            <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+                Siap Memverifikasi Integritas Citra Digital Anda?
+            </h2>
+            <p style="font-size: 14px; color: var(--text-secondary); max-width: 540px; margin: 0 auto 20px;">
+                Uji foto Anda sekarang secara langsung di browser tanpa instalasi dan tanpa registrasi.
+            </p>
+            <a href="deteksi.html" class="btn btn-primary" style="padding: 11px 24px;">
+                <i class="fa-solid fa-crosshairs"></i> Buka Ruang Deteksi Citra
+            </a>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
+            <span>Didukung Model ResNet18 &bull; Privasi Terjamin &bull; 2026</span>
+        </div>
+    </footer>
+
+    <!-- Sapaan Dinamis & Telemetri Real-Time -->
+    <script>
+        const greetings = [
+            "Scan dengan ini untuk mendeteksi keaslian gambar",
+            "Verifikasi keaslian foto digital secara instan",
+            "Deteksi artefak mikroskopis hasil model Generative AI",
+            "Uji integritas struktur piksel dengan akurasi teruji",
+            "Lindungi keamanan visual dari ancaman manipulasi digital"
+        ];
+
+        let greetingIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        const greetingElement = document.getElementById('dynamicGreeting');
+
+        function typeEffect() {
+            const currentText = greetings[greetingIndex];
+            
+            if (isDeleting) {
+                greetingElement.textContent = currentText.substring(0, charIndex - 1);
+                charIndex--;
+            } else {
+                greetingElement.textContent = currentText.substring(0, charIndex + 1);
+                charIndex++;
+            }
+
+            let typeSpeed = isDeleting ? 22 : 48;
+
+            if (!isDeleting && charIndex === currentText.length) {
+                typeSpeed = 2200;
+                isDeleting = true;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                greetingIndex = (greetingIndex + 1) % greetings.length;
+                typeSpeed = 400;
+            }
+
+            setTimeout(typeEffect, typeSpeed);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(typeEffect, 500);
+
+            // Telemetri status scanner bergerak dinamis
+            const statusList = [
+                "MEMINDAI ARTEFAK SINTETIS...",
+                "ANALISIS DISTRIBUSI FREKUENSI...",
+                "EKSTRAKSI TENSOR 224×224 RGB...",
+                "KALKULASI PROBABILITAS RESNET18..."
+            ];
+            let statusIdx = 0;
+            const statusEl = document.getElementById('scannerStatusReadout');
+            
+            setInterval(() => {
+                statusIdx = (statusIdx + 1) % statusList.length;
+                if (statusEl) {
+                    statusEl.textContent = statusList[statusIdx];
+                }
+            }, 2400);
+        });
+    </script>
+</body>
+</html>

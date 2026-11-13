@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cara Kerja & Panduan — DeepGuard AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="/static/img/logo_deteksi_citra_ai.png">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="brand">
+                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI Logo" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title">DeepGuard AI</span>
+                    <span class="brand-pill">FORENSICS</span>
+                </div>
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html"><i class="fa-solid fa-house"></i> Beranda</a></li>
+                    <li><a href="deteksi.html"><i class="fa-solid fa-crosshairs"></i> Deteksi Citra</a></li>
+                    <li><a href="panduan.html" class="active"><i class="fa-solid fa-book-bookmark"></i> Cara Kerja</a></li>
+                    <li><a href="tentang.html"><i class="fa-solid fa-circle-info"></i> Tentang Kami</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="main-content">
+
+        <div class="page-header">
+            <span class="page-badge"><i class="fa-solid fa-book-bookmark"></i> DOKUMENTASI SISTEM</span>
+            <h1 class="page-title">
+                <i class="fa-solid fa-sliders"></i> Cara Kerja & Spesifikasi Teknis
+            </h1>
+            <p class="page-desc">
+                Pelajari alur kerja pemindaian neural, format berkas yang didukung, serta metode pembacaan skor probabilitas klasifikasi citra.
+            </p>
+        </div>
+
+        <!-- Alur Kerja Pemindaian 3 Langkah -->
+        <section class="card">
+            <div class="card-header-clean">
+                <h2 class="card-title"><i class="fa-solid fa-route"></i> Alur Pemindaian Tiga Langkah</h2>
+                <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">WORKFLOW</span>
+            </div>
+
+            <div class="step-list">
+                <div class="step-item">
+                    <div class="step-badge">1</div>
+                    <div>
+                        <h3 style="font-size: 14.5px; font-weight: 700; margin-bottom: 3px; color: #ffffff;">
+                            Unggah Berkas Citra
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                            Tarik berkas foto digital JPG atau PNG ke area unggah pada menu <strong>Deteksi Citra</strong>. Berkas akan divalidasi langsung di sisi peramban.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-badge">2</div>
+                    <div>
+                        <h3 style="font-size: 14.5px; font-weight: 700; margin-bottom: 3px; color: #ffffff;">
+                            Eksekusi Pemindaian Laser & Inferensi
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                            Klik <strong>"Analisis Citra"</strong>. Mesin forensik memindai struktur piksel secara bertahap dan menjalankan inferensi tensor ResNet18 secara <em>in-memory</em>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-badge">3</div>
+                    <div>
+                        <h3 style="font-size: 14.5px; font-weight: 700; margin-bottom: 3px; color: #ffffff;">
+                            Dapatkan Hasil & Skor Keyakinan
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                            Sistem menyajikan label vonis (Real atau Fake) beserta meteran distribusi probabilitas Softmax dalam waktu kurang dari 50 milidetik.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Spesifikasi & Interpretasi Skor -->
+        <section class="grid-2">
+            <div class="card">
+                <div class="card-header-clean">
+                    <h2 class="card-title"><i class="fa-solid fa-file-shield"></i> Spesifikasi Berkas</h2>
+                </div>
+                <ul style="font-size: 13px; color: var(--text-secondary); padding-left: 18px; display: flex; flex-direction: column; gap: 9px; line-height: 1.6;">
+                    <li><strong>Format Didukung:</strong> JPEG, JPG, dan PNG. Dokumen non-gambar otomatis ditolak demi keamanan sistem.</li>
+                    <li><strong>Batas Ukuran:</strong> Maksimal 10 MB per berkas foto.</li>
+                    <li><strong>Resolusi Standar:</strong> Citra di-<em>resize</em> secara otomatis menjadi tensor 224&times;224 RGB.</li>
+                    <li><strong>Kualitas Anjuran:</strong> Hindari kompresi berulang agar jejak frekuensi mikro tetap terbaca optimal.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header-clean">
+                    <h2 class="card-title"><i class="fa-solid fa-gauge-high"></i> Interpretasi Skor Keyakinan</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
+                    <div style="padding: 10px 12px; background: var(--real-bg); border: 1px solid var(--real-border); border-radius: var(--radius-sm);">
+                        <strong style="color: var(--real-color);"><i class="fa-solid fa-circle-check"></i> REAL (&gt; 70%):</strong>
+                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Pola piksel dan tekstur alami menyerupai tangkapan sensor kamera fisik optik.</span>
+                    </div>
+                    <div style="padding: 10px 12px; background: var(--fake-bg); border: 1px solid var(--fake-border); border-radius: var(--radius-sm);">
+                        <strong style="color: var(--fake-color);"><i class="fa-solid fa-triangle-exclamation"></i> FAKE (&gt; 70%):</strong>
+                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Ditemukan anomali domain frekuensi khas sintesis generator kecerdasan buatan.</span>
+                    </div>
+                    <div style="padding: 10px 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--radius-sm);">
+                        <strong style="color: var(--warn-color);"><i class="fa-solid fa-circle-info"></i> AREA AMBIGU (50% &ndash; 65%):</strong>
+                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Citra berada pada batas ambang, disarankan verifikasi silang metadata EXIF.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tanya Jawab Singkat (FAQ) -->
+        <section class="card">
+            <div class="card-header-clean">
+                <h2 class="card-title"><i class="fa-solid fa-circle-question"></i> Pertanyaan Umum (FAQ)</h2>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
+                <div>
+                    <h4 style="font-weight: 700; color: #ffffff; margin-bottom: 3px;">Apakah foto saya disimpan di server?</h4>
+                    <p style="color: var(--text-secondary); line-height: 1.6;">Tidak. DeepGuard AI menerapkan kebijakan <em>zero-retention</em>. Citra hanya diproses sementara di RAM server dan segera dibuang setelah inferensi selesai.</p>
+                </div>
+                <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+                    <h4 style="font-weight: 700; color: #ffffff; margin-bottom: 3px;">Model apa yang mentenagai deteksi ini?</h4>
+                    <p style="color: var(--text-secondary); line-height: 1.6;">Sistem menggunakan arsitektur ResNet18 (Residual Network 18 lapisan) yang dilatih khusus untuk klasifikasi biner citra alami vs citra Generative AI.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
+            <span>Didukung Model ResNet18 &bull; Privasi Terjamin &bull; 2026</span>
+        </div>
+    </footer>
+
+</body>
+</html>

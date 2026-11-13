@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tentang Kami — DeepGuard AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="/static/img/logo_deteksi_citra_ai.png">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="brand">
+                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI Logo" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title">DeepGuard AI</span>
+                    <span class="brand-pill">FORENSICS</span>
+                </div>
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html"><i class="fa-solid fa-house"></i> Beranda</a></li>
+                    <li><a href="deteksi.html"><i class="fa-solid fa-crosshairs"></i> Deteksi Citra</a></li>
+                    <li><a href="panduan.html"><i class="fa-solid fa-book-bookmark"></i> Cara Kerja</a></li>
+                    <li><a href="tentang.html" class="active"><i class="fa-solid fa-circle-info"></i> Tentang Kami</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="main-content">
+
+        <div class="page-header">
+            <span class="page-badge"><i class="fa-solid fa-shield-halved"></i> TENTANG DEEPGUARD AI</span>
+            <h1 class="page-title">
+                <i class="fa-solid fa-building-shield"></i> Integritas Visual di Era Generative AI
+            </h1>
+            <p class="page-desc">
+                DeepGuard AI adalah platform forensik kecerdasan buatan yang berfokus pada deteksi keaslian citra visual, mitigasi disinformasi, dan perlindungan bukti digital dari ancaman manipulasi deepfake.
+            </p>
+        </div>
+
+        <!-- 3 Pilar Nilai Platform -->
+        <section class="grid-3" style="margin-bottom: 26px;">
+            <div class="card" style="margin-bottom: 0;">
+                <div class="feature-icon-box">
+                    <i class="fa-solid fa-eye"></i>
+                </div>
+                <h3 class="feature-title">Riset Forensik Spasial</h3>
+                <p class="feature-desc">
+                    Mengidentifikasi jejak mikroskopis yang ditinggalkan model difusi sintetis pada domain spasial dan frekuensi piksel.
+                </p>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+                <div class="feature-icon-box">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <h3 class="feature-title">Inferensi Berkecepatan Tinggi</h3>
+                <p class="feature-desc">
+                    Arsitektur jaringan konvolusi ResNet18 dioptimalkan untuk mengeksekusi analisis dalam waktu milidetik secara efisien di CPU.
+                </p>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+                <div class="feature-icon-box">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="feature-title">Privasi Tanpa Kompromi</h3>
+                <p class="feature-desc">
+                    Menerapkan prinsip <em>zero data retention</em>. Berkas diproses sepenuhnya di RAM tanpa pernah disimpan ke basis data.
+                </p>
+            </div>
+        </section>
+
+        <!-- Spesifikasi Arsitektur & Pelatihan -->
+        <section class="grid-2">
+            <div class="card">
+                <div class="card-header-clean">
+                    <h2 class="card-title"><i class="fa-solid fa-network-wired"></i> Spesifikasi Arsitektur Neural</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                        <span style="color: var(--text-secondary);">Model Inti</span>
+                        <strong style="color: #ffffff; font-family: var(--font-mono);">ResNet18 (Residual Network)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                        <span style="color: var(--text-secondary);">Metode Pelatihan</span>
+                        <strong style="color: #ffffff;">Transfer Learning Feature Extractor</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                        <span style="color: var(--text-secondary);">Dimensi Input</span>
+                        <strong style="color: #ffffff; font-family: var(--font-mono);">224 &times; 224 &times; 3 (RGB)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-secondary);">Fungsi Aktivasi Klasifikasi</span>
+                        <strong style="color: var(--primary); font-family: var(--font-mono);">Softmax (Binary Logits)</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header-clean">
+                    <h2 class="card-title"><i class="fa-solid fa-database"></i> Tolok Ukur Dataset & Validasi</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                        <span style="color: var(--text-secondary);">Dataset Evaluasi</span>
+                        <strong style="color: #ffffff;">Tiny-GenImage Benchmark</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                        <span style="color: var(--text-secondary);">Total Citra Teruji</span>
+                        <strong style="color: #ffffff; font-family: var(--font-mono);">7.000 Data Uji Final</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                        <span style="color: var(--text-secondary);">Akurasi Keseluruhan</span>
+                        <strong style="color: var(--real-color); font-family: var(--font-mono);">72,0%</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-secondary);">Presisi Deteksi AI (Fake)</span>
+                        <strong style="color: var(--primary); font-family: var(--font-mono);">0,78</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Komitmen Privasi & Etika -->
+        <section class="card" style="padding: 24px;">
+            <div style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--primary-soft); border: 1px solid var(--border-cyan); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 18px; flex-shrink: 0;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 15.5px; font-weight: 700; color: #ffffff; margin-bottom: 4px;">Komitmen Etika Keamanan Informasi</h3>
+                    <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin: 0;">
+                        Platform ini dikembangkan untuk mendukung verifikator fakta, analis forensik, jurnalis, dan masyarakat umum dalam memvalidasi keaslian media visual di tengah pesatnya perkembangan teknologi kecerdasan buatan generatif.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
+            <span>Didukung Model ResNet18 &bull; Privasi Terjamin &bull; 2026</span>
+        </div>
+    </footer>
+
+</body>
+</html>

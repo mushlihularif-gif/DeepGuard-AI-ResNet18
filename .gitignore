@@ -1,0 +1,32 @@
+# Python environment & cache
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Operating system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE and Editor configs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Large backup model checkpoints (keep only active resnet18_model.pt)
+models/*_backup*.pt
+models/*.bak
+models/*.tmp
+
+# Temporary training artifacts and logs
+*.log
+scratch/
+.system_generated/
