@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import hashlib
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,33 +13,46 @@ sys.stdout.reconfigure(line_buffering=True)
 
 # 1. Periksa Akselerasi GPU CUDA
 if not torch.cuda.is_available():
-    print("[PERINGATAN] CUDA tidak terdeteksi, fallback ke CPU.")
+    print("[PERINGATAN] CUDA tidak terdeteksi, menggunakan CPU.")
     device = torch.device("cpu")
 else:
     device = torch.device("cuda")
     print(f"[OK] CUDA Aktif! Menggunakan GPU: {torch.cuda.get_device_name(0)}")
     print(f"     VRAM Tersedia: {torch.cuda.get_device_properties(0).total_memory / (1024**3):.2f} GB")
 
-# 2. Pemuatan Dataset dari Disk
-from datasets import load_from_disk
+# 2. Lokasi Folder Otomatis (Berfungsi di Semua Laptop Anggota Kelompok 8)
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(PROJECT_DIR, "models")
+os.makedirs(MODEL_DIR, exist_ok=True)
+SAVE_PATH = os.path.join(MODEL_DIR, "resnet18_model.pt")
 
 TRAIN_PATH = r"E:\train_clean_saved"
 VAL_PATH = r"E:\val_resmi_saved"
-PROJECT_DIR = r"E:\Teknik Informatika\Semester 5\Artificial Intelligence for Security\GACOR DETEKSI CITRA HASIL GENERATIVE AI MENGGUNAKAN RESNET18"
-SAVE_PATH = os.path.join(PROJECT_DIR, "models", "resnet18_model.pt")
 
 print("\n[1/4] Memuat Dataset Tiny-GenImage...")
-ds_train = load_from_disk(TRAIN_PATH)
-ds_val = load_from_disk(VAL_PATH)
+from datasets import load_from_disk, load_dataset
+
+if os.path.exists(TRAIN_PATH) and os.path.exists(VAL_PATH):
+    print("      -> Memuat dari disk lokal (E:\\train_clean_saved)...")
+    ds_train = load_from_disk(TRAIN_PATH)
+    ds_val = load_from_disk(VAL_PATH)
+else:
+    print("      -> Folder E:\\train_clean_saved tidak ditemukan di laptop ini.")
+    print("      -> Mengunduh/memuat otomatis 'TheNoob3131/Tiny-GenImage' dari Hugging Face...")
+    hf_ds = load_dataset("TheNoob3131/Tiny-GenImage")
+    ds_train = hf_ds["train"]
+    ds_val = hf_ds["validation"]
+
 print(f"      - Data Training  : {len(ds_train):,} citra")
 print(f"      - Data Validasi  : {len(ds_val):,} citra")
 
-# 3. Augmentasi & Data Loader
+# 3. Augmentasi & Data Loader (Anti-Overfitting)
 train_transform = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.RandomCrop(224),
     transforms.RandomHorizontalFlip(p=0.5),
-    transforms.ColorJitter(brightness=0.1, contrast=0.1),
+    transforms.RandomRotation(degrees=10),
+    transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.15),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
@@ -70,8 +84,8 @@ class FastGenImageDataset(Dataset):
 train_dataset = FastGenImageDataset(ds_train, train_transform)
 val_dataset = FastGenImageDataset(ds_val, val_transform)
 
-BATCH_SIZE = 128 if device.type == "cuda" else 16
-NUM_WORKERS = 0  # 0 paling aman dan stabil di Windows
+BATCH_SIZE = 64 if device.type == "cuda" else 32
+NUM_WORKERS = 0  # Stabil di Windows
 
 train_loader = DataLoader(
     train_dataset,
@@ -88,37 +102,48 @@ val_loader = DataLoader(
     pin_memory=(device.type == "cuda")
 )
 
-# 4. Bangun Model ResNet-18 dengan 100% Parameter Terbuka (Fine-Tuning Penuh)
-print("\n[2/4] Menginisialisasi Model ResNet-18...")
+# 4. Bangun Model ResNet-18 dengan Partial Fine-Tuning (Mencegah Model "Plenlenger" / Overfitting)
+print("\n[2/4] Menginisialisasi Model ResNet-18 (Stabilized Partial Fine-Tuning)...")
 model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-
-# Ganti layer akhir menjadi 2 kelas: Real (0) & Fake (1)
 num_ftrs = model.fc.in_features
 model.fc = nn.Linear(num_ftrs, 2)
 
-# Unfreeze seluruh parameter agar model pintar secara komprehensif!
+# Jika sudah ada resnet18_model.pt sebelumnya, muat sebagai titik awal
+if os.path.exists(SAVE_PATH) and os.path.getsize(SAVE_PATH) > 1024:
+    try:
+        model.load_state_dict(torch.load(SAVE_PATH, map_location="cpu", weights_only=True), strict=True)
+        print(f"      - Melanjutkan dari bobot yang sudah ada: {SAVE_PATH}")
+    except Exception:
+        print("      - Memulai dari bobot Pretrained ImageNet1K_V1")
+
+# Bekukan layer detektor tepi dasar (conv1, bn1, layer1) agar tidak rusak (anti-catastrophic forgetting)
 for param in model.parameters():
-    param.requires_grad = True
+    param.requires_grad = False
+
+# Buka (unfreeze) layer2, layer3, layer4, dan fc untuk mempelajari artefak Generative AI
+for layer_name in ["layer2", "layer3", "layer4", "fc"]:
+    for param in getattr(model, layer_name).parameters():
+        param.requires_grad = True
 
 total_params = sum(p.numel() for p in model.parameters())
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print(f"      - Total Parameter : {total_params:,}")
-print(f"      - Parameter Dilatih: {trainable_params:,} (100% DILATIH!)")
+print(f"      - Total Parameter    : {total_params:,}")
+print(f"      - Parameter Dilatih  : {trainable_params:,} (Layer 2, 3, 4 + FC)")
 
 model = model.to(device)
 
-# Differential Learning Rate (Backbone lebih kecil, FC head lebih besar)
-backbone_params = [p for n, p in model.named_parameters() if not n.startswith("fc")]
-fc_params = [p for n, p in model.named_parameters() if n.startswith("fc")]
-
+# Differential Learning Rate + Label Smoothing + Class Weighting (Menekan False Negative)
 optimizer = torch.optim.AdamW([
-    {"params": backbone_params, "lr": 3e-5, "weight_decay": 1e-4},
-    {"params": fc_params, "lr": 3e-4, "weight_decay": 1e-4}
+    {"params": model.layer2.parameters(), "lr": 5e-5, "weight_decay": 1e-4},
+    {"params": model.layer3.parameters(), "lr": 1e-4, "weight_decay": 1e-4},
+    {"params": model.layer4.parameters(), "lr": 1e-4, "weight_decay": 1e-4},
+    {"params": model.fc.parameters(),     "lr": 5e-4, "weight_decay": 1e-4}
 ])
 
-EPOCHS = 3
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
-criterion = nn.CrossEntropyLoss()
+EPOCHS = 5
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
+class_weights = torch.tensor([1.0, 1.15], dtype=torch.float, device=device)
+criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.05)
 scaler = torch.amp.GradScaler('cuda') if device.type == "cuda" else None
 
 print(f"\n[3/4] Mulai Fine-Tuning ({EPOCHS} Epoch, Batch Size={BATCH_SIZE}, Device={device.type.upper()})...\n")
@@ -200,14 +225,13 @@ for epoch in range(1, EPOCHS + 1):
     duration = time.time() - epoch_start
 
     print(f"\n==================== HASIL EPOCH {epoch}/{EPOCHS} ({duration:.1f}s) ====================")
-    print(f"  Akurasi Validasi : {val_acc:.2f}% (Sebelumnya: 72.00%)")
-    print(f"  Recall Fake (AI) : {recall*100:.2f}% (Sebelumnya: 62.00%)")
+    print(f"  Akurasi Validasi : {val_acc:.2f}% (Baseline: 72.00%)")
+    print(f"  Recall Fake (AI) : {recall*100:.2f}% (Baseline: 62.00%)")
     print(f"  Presisi Fake (AI): {precision*100:.2f}%")
     print(f"  F1-Score         : {f1*100:.2f}%")
     print(f"  Confusion Matrix : TP={tp:,} | FP={fp:,} | TN={tn:,} | FN={fn:,}")
     print(f"====================================================================\n")
 
-    # Simpan bobot terbaik (selalu dalam format CPU tensor agar kompatibel)
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         cpu_state = {k: v.cpu() for k, v in model.state_dict().items()}
