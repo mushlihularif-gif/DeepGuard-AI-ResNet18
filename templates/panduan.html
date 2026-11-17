@@ -86,7 +86,7 @@
                             Dapatkan Hasil & Skor Keyakinan
                         </h3>
                         <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                            Sistem menyajikan label vonis (Real atau Fake) beserta meteran distribusi probabilitas Softmax dalam waktu kurang dari 50 milidetik.
+                            Sistem menampilkan indikasi non-AI, AI, atau belum dapat dipastikan. Skor softmax dikalibrasi pada data terpisah; waktu proses bergantung perangkat.
                         </p>
                     </div>
                 </div>
@@ -103,7 +103,7 @@
                     <li><strong>Format Didukung:</strong> JPEG, JPG, dan PNG. Dokumen non-gambar otomatis ditolak demi keamanan sistem.</li>
                     <li><strong>Batas Ukuran:</strong> Maksimal 10 MB per berkas foto.</li>
                     <li><strong>Resolusi Standar:</strong> Citra di-<em>resize</em> secara otomatis menjadi tensor 224&times;224 RGB.</li>
-                    <li><strong>Kualitas Anjuran:</strong> Hindari kompresi berulang agar jejak frekuensi mikro tetap terbaca optimal.</li>
+                    <li><strong>Kualitas Anjuran:</strong> Gunakan berkas asli jika tersedia; kompresi berulang dapat mengubah hasil.</li>
                 </ul>
             </div>
 
@@ -113,16 +113,16 @@
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
                     <div style="padding: 10px 12px; background: var(--real-bg); border: 1px solid var(--real-border); border-radius: var(--radius-sm);">
-                        <strong style="color: var(--real-color);"><i class="fa-solid fa-circle-check"></i> REAL (&gt; 70%):</strong>
-                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Pola piksel dan tekstur alami menyerupai tangkapan sensor kamera fisik optik.</span>
+                        <strong style="color: var(--real-color);"><i class="fa-solid fa-circle-check"></i> NON-AI (skor AI ≤ 20%):</strong>
+                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Lebih menyerupai kelas non-AI dalam data latihan; tidak membuktikan gambar bebas edit AI.</span>
                     </div>
                     <div style="padding: 10px 12px; background: var(--fake-bg); border: 1px solid var(--fake-border); border-radius: var(--radius-sm);">
-                        <strong style="color: var(--fake-color);"><i class="fa-solid fa-triangle-exclamation"></i> FAKE (&gt; 70%):</strong>
-                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Ditemukan anomali domain frekuensi khas sintesis generator kecerdasan buatan.</span>
+                        <strong style="color: var(--fake-color);"><i class="fa-solid fa-triangle-exclamation"></i> AI (skor AI ≥ 80%):</strong>
+                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Model menemukan kemiripan dengan data AI; hasil tetap perlu dikonfirmasi dari sumber gambar.</span>
                     </div>
                     <div style="padding: 10px 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--radius-sm);">
-                        <strong style="color: var(--warn-color);"><i class="fa-solid fa-circle-info"></i> AREA AMBIGU (50% &ndash; 65%):</strong>
-                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Citra berada pada batas ambang, disarankan verifikasi silang metadata EXIF.</span>
+                        <strong style="color: var(--warn-color);"><i class="fa-solid fa-circle-info"></i> AREA RAGU (20% &lt; skor AI &lt; 80%):</strong>
+                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Model menahan keputusan. Periksa sumber dan foto sebelum edit. EXIF kamera dapat tetap ada setelah edit AI.</span>
                     </div>
                 </div>
             </div>

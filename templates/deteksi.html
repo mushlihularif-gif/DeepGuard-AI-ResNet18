@@ -43,7 +43,7 @@
                 <i class="fa-solid fa-microscope"></i> Ruang Analisis Forensik Citra
             </h1>
             <p class="page-desc">
-                Unggah berkas foto digital untuk memindai artefak sintetis dan memverifikasi apakah citra tergolong foto asli (Real) atau hasil generasi kecerdasan buatan (Fake AI).
+                Unggah gambar untuk melihat indikasi AI. Foto yang hanya diganti baju, wajah, atau latarnya dengan AI dapat lolos dari deteksi; hasil non-AI bukan bukti foto asli.
             </p>
         </div>
 
@@ -142,15 +142,9 @@
                 <!-- Bilah Simulasi Cepat (Pengujian Praktis) -->
                 <div class="demo-bar">
                     <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; font-family: var(--font-mono);">
-                        <i class="fa-solid fa-vial"></i> CONTOH UJI:
+                        <i class="fa-solid fa-vial"></i> DEMO VALIDASI FORM:
                     </span>
                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                        <button type="button" id="btnSimReal" class="btn btn-secondary btn-sm">
-                            <i class="fa-solid fa-circle-check" style="color: var(--real-color);"></i> Foto Asli
-                        </button>
-                        <button type="button" id="btnSimFake" class="btn btn-secondary btn-sm">
-                            <i class="fa-solid fa-triangle-exclamation" style="color: var(--fake-color);"></i> Foto AI
-                        </button>
                         <button type="button" id="btnSimInvalid" class="btn btn-secondary btn-sm">
                             <i class="fa-solid fa-file-excel"></i> Non-Gambar
                         </button>
@@ -164,7 +158,7 @@
             <!-- KOLOM KANAN: Hasil Keputusan Model -->
             <div class="card">
                 <div class="card-header-clean">
-                    <h2 class="card-title"><i class="fa-solid fa-chart-column"></i> 2. Hasil Keputusan Forensik</h2>
+                    <h2 class="card-title"><i class="fa-solid fa-chart-column"></i> 2. Hasil Analisis Model</h2>
                     <span class="page-badge" style="margin-bottom: 0;">DISTRIBUSI SOFTMAX</span>
                 </div>
 
@@ -175,7 +169,7 @@
                         Menunggu Masukan Citra
                     </div>
                     <p style="font-size: 13px; color: var(--text-secondary); max-width: 400px; margin: 0 auto; line-height: 1.6;">
-                        Pilih atau seret berkas gambar pada panel di sebelah kiri, kemudian tekan tombol <strong>"Analisis Citra"</strong> untuk memverifikasi keaslian foto.
+                        Pilih atau seret berkas gambar pada panel di sebelah kiri, kemudian tekan tombol <strong>"Analisis Citra"</strong> untuk melihat indikasi model.
                     </p>
                 </div>
 
@@ -187,10 +181,10 @@
                             <i class="fa-solid fa-shield-check"></i>
                         </div>
                         <div class="verdict-info">
-                            <span id="resultClassBadge" class="result-badge-large">TERVERIFIKASI ASLI</span>
-                            <div id="resultMainTitle" class="result-label-title">Foto Kamera Asli (Real)</div>
+                            <span id="resultClassBadge" class="result-badge-large">MENUNGGU HASIL</span>
+                            <div id="resultMainTitle" class="result-label-title">Cenderung non-AI</div>
                             <p id="resultSummaryDesc" class="verdict-summary">
-                                Tidak terdeteksi tanda manipulasi generative AI. Struktur piksel alami.
+                                Hasil belum tersedia.
                             </p>
                         </div>
                     </div>
@@ -198,10 +192,10 @@
                     <!-- Callout Tingkat Keyakinan Utama -->
                     <div class="confidence-callout">
                         <div>
-                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-family: var(--font-mono); display: block; margin-bottom: 3px; letter-spacing: 0.5px;">TINGKAT KEYAKINAN UTAMA</span>
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-family: var(--font-mono); display: block; margin-bottom: 3px; letter-spacing: 0.5px;">SKOR KELAS AI</span>
                             <div class="confidence-val-wrap">
                                 <span id="confidenceNumber" class="confidence-main-number">0,0%</span>
-                                <span id="confidenceTag" class="confidence-tag">KEYAKINAN TINGGI</span>
+                                <span id="confidenceTag" class="confidence-tag">SKOR MODEL</span>
                             </div>
                         </div>
                         <div style="text-align: right;">
@@ -213,7 +207,7 @@
                     <!-- Skala Spektrum Indeks AI (Seberapa AI Tingkat Rekayasanya) -->
                     <div class="ai-spectrum-container">
                         <div class="spectrum-top-info">
-                            <span class="spectrum-label"><i class="fa-solid fa-gauge-high"></i> Indeks Probabilitas Rekayasa AI</span>
+                            <span class="spectrum-label"><i class="fa-solid fa-gauge-high"></i> Skor Kelas AI — Bukan Persentase Edit</span>
                             <span id="spectrumScoreText" class="spectrum-score">0,0% AI</span>
                         </div>
                         <div class="spectrum-track-wrap">
@@ -223,9 +217,9 @@
                             </div>
                         </div>
                         <div class="spectrum-legend">
-                            <span>0% (Murni Foto Asli)</span>
-                            <span>50% (Ambang Batas Ambigu)</span>
-                            <span>100% (Sintetis AI Penuh)</span>
+                            <span>0% (Skor non-AI tinggi)</span>
+                            <span>20–80%: Area ragu</span>
+                            <span>100% (Skor AI tinggi)</span>
                         </div>
                     </div>
 
@@ -237,7 +231,7 @@
 
                         <div class="prob-row">
                             <div class="prob-header">
-                                <span style="color: var(--real-color);"><i class="fa-solid fa-circle-check"></i> Foto Asli (Real Camera)</span>
+                                <span style="color: var(--real-color);"><i class="fa-solid fa-circle-check"></i> Kelas non-AI</span>
                                 <span id="probRealText" style="color: var(--real-color); font-family: var(--font-mono); font-weight: 700;">0,0%</span>
                             </div>
                             <div class="prob-bar-bg">
@@ -260,23 +254,23 @@
                     <div class="diagnostic-checklist">
                         <div class="diagnostic-header">
                             <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--primary);"></i>
-                            <span>Faktor Penentu Analisis Forensik (Mengapa Terdeteksi?):</span>
+                            <span>Cakupan dan Batas Pemeriksaan:</span>
                         </div>
                         <div class="diagnostic-grid">
                             <div class="diagnostic-item">
-                                <span class="label">Integritas Tekstur Sensor</span>
+                                <span class="label">Model</span>
                                 <span class="status" id="diagTexture">-</span>
                             </div>
                             <div class="diagnostic-item">
-                                <span class="label">Artefak Domain Frekuensi</span>
+                                <span class="label">Perhitungan skor</span>
                                 <span class="status" id="diagFrequency">-</span>
                             </div>
                             <div class="diagnostic-item">
-                                <span class="label">Pola Noise & Rekayasa Difusi</span>
+                                <span class="label">Edit sebagian gambar</span>
                                 <span class="status" id="diagNoise">-</span>
                             </div>
                             <div class="diagnostic-item">
-                                <span class="label">Status Keaslian & Rekomendasi</span>
+                                <span class="label">Langkah berikutnya</span>
                                 <span class="status" id="diagAction">-</span>
                             </div>
                         </div>
@@ -346,10 +340,10 @@
         const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png'];
 
         let currentValidFile = null;
-        let currentSimulationMode = null;
+        let selectionVersion = 0;
 
         function showError(msg) {
-            validationAlert.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + msg;
+            validationAlert.textContent = msg;
             validationAlert.classList.remove('hidden');
         }
 
@@ -365,9 +359,9 @@
         }
 
         function resetAll() {
+            selectionVersion += 1;
             fileInput.value = '';
             currentValidFile = null;
-            currentSimulationMode = null;
             hideError();
             previewImage.src = '';
             previewImage.classList.add('hidden');
@@ -393,12 +387,13 @@
         }
 
         function handleSelectedFile(file) {
+            const fileVersion = ++selectionVersion;
+            currentValidFile = null;
             hideError();
             activeResultPanel.classList.add('hidden');
             emptyResultState.classList.remove('hidden');
             processStatus.classList.add('hidden');
             previewBox.classList.remove('scan-active');
-            currentSimulationMode = null;
 
             if (!file) { btnAnalyze.disabled = true; return; }
 
@@ -440,6 +435,7 @@
 
             const reader = new FileReader();
             reader.onload = function(evt) {
+                if (fileVersion !== selectionVersion) return;
                 previewImage.onload = function() {
                     metaFileDim.textContent = previewImage.naturalWidth + '×' + previewImage.naturalHeight + ' px → 224×224 px';
                 };
@@ -466,86 +462,36 @@
 
         btnReset.addEventListener('click', resetAll);
 
-        function renderPredictionResult(label, probReal, probFake, elapsedMs) {
+        function renderPredictionResult(data) {
+            const {label, prob_real: probReal, prob_fake: probFake, inference_ms: elapsedMs} = data;
+            if (!['REAL', 'FAKE', 'UNCERTAIN'].includes(label) ||
+                !Number.isFinite(probReal) || !Number.isFinite(probFake)) {
+                throw new Error('Respons model tidak valid.');
+            }
             emptyResultState.classList.add('hidden');
-            activeResultPanel.classList.remove('hidden', 'result-real', 'result-fake');
+            activeResultPanel.classList.remove('hidden', 'result-real', 'result-fake', 'result-uncertain');
+            activeResultPanel.classList.add(label === 'REAL' ? 'result-real' : label === 'FAKE' ? 'result-fake' : 'result-uncertain');
             previewBox.classList.remove('scan-active');
-
-            const verdictIcon = document.getElementById('verdictIcon');
-            const badge = document.getElementById('resultClassBadge');
-            const title = document.getElementById('resultMainTitle');
-            const desc = document.getElementById('resultSummaryDesc');
-            const confNumber = document.getElementById('confidenceNumber');
-            const confTag = document.getElementById('confidenceTag');
-            const diagTexture = document.getElementById('diagTexture');
-            const diagFrequency = document.getElementById('diagFrequency');
-            const diagNoise = document.getElementById('diagNoise');
-            const diagAction = document.getElementById('diagAction');
-            const diagDetailText = document.getElementById('diagDetailText');
-            const spectrumMarker = document.getElementById('spectrumMarker');
-            const spectrumScoreText = document.getElementById('spectrumScoreText');
-
-            const isReal = label === 'REAL';
-            const winProb = isReal ? probReal : probFake;
-            const winPct = (winProb * 100).toFixed(1);
-            const realPct = (probReal * 100).toFixed(1);
-            const fakePct = (probFake * 100).toFixed(1);
-
-            confNumber.textContent = winPct.replace('.', ',') + '%';
-
-            if (winProb >= 0.8) {
-                confTag.textContent = 'KEYAKINAN SANGAT TINGGI';
-            } else if (winProb >= 0.65) {
-                confTag.textContent = 'KEYAKINAN TINGGI';
-            } else {
-                confTag.textContent = 'AMBIGU (VERIFIKASI LANJUTAN)';
-            }
-
-            // Update Skala Spektrum Indeks AI
-            if (spectrumMarker && spectrumScoreText) {
-                const numericFake = Math.min(Math.max(parseFloat(fakePct), 0), 100);
-                spectrumMarker.style.left = numericFake + '%';
-                spectrumScoreText.textContent = fakePct.replace('.', ',') + '% AI';
-                spectrumScoreText.style.color = isReal ? 'var(--real-color)' : 'var(--fake-color)';
-            }
-
-            if (isReal) {
-                activeResultPanel.classList.add('result-real');
-                verdictIcon.innerHTML = '<i class="fa-solid fa-shield-check"></i>';
-                badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> TERVERIFIKASI: FOTO ASLI (REAL)';
-                title.textContent = 'Foto Kamera Asli (Real)';
-                desc.textContent = 'Tidak terdeteksi artefak difusi sintetis. Distribusi piksel dan tekstur konsisten dengan tangkapan sensor kamera fisik optik alami.';
-                diagTexture.innerHTML = '<span style="color: var(--real-color);"><i class="fa-solid fa-check"></i> Koheren & Alami</span>';
-                diagFrequency.innerHTML = '<span style="color: var(--real-color);"><i class="fa-solid fa-check"></i> Bersih (Wajar)</span>';
-                if (diagNoise) diagNoise.innerHTML = '<span style="color: var(--real-color);"><i class="fa-solid fa-check"></i> Photon Noise Sensor Optik</span>';
-                diagAction.innerHTML = '<span style="color: var(--real-color);"><i class="fa-solid fa-shield-halved"></i> Otentik & Terpercaya</span>';
-                if (diagDetailText) {
-                    diagDetailText.innerHTML = `<strong>Mengapa Terdeteksi Foto Asli?</strong> Model ResNet18 tidak mendeteksi anomali pada domain frekuensi spasial. Distribusi noise sensor (ISO) bersifat acak alami khas sensor CMOS/CCD kamera, serta tidak terdapat jejak denoise rekursif dari arsitektur generative diffusion/GAN.`;
-                }
-            } else {
-                activeResultPanel.classList.add('result-fake');
-                verdictIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-                badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> TERDETEKSI: HASIL GENERATIVE AI (FAKE)';
-                title.textContent = 'Citra Buatan AI (Fake)';
-                desc.textContent = 'Ditemukan pola artefak konvolusi sintetis dan anomali domain frekuensi mikroskopis khas generator difusi kecerdasan buatan.';
-                diagTexture.innerHTML = '<span style="color: var(--fake-color);"><i class="fa-solid fa-xmark"></i> Distorsi Pola Sintetis</span>';
-                diagFrequency.innerHTML = '<span style="color: var(--fake-color);"><i class="fa-solid fa-triangle-exclamation"></i> Artefak Difusi Terdeteksi</span>';
-                if (diagNoise) diagNoise.innerHTML = '<span style="color: var(--fake-color);"><i class="fa-solid fa-triangle-exclamation"></i> Jejak Denoise Difusi Sintetis</span>';
-                diagAction.innerHTML = '<span style="color: var(--fake-color);"><i class="fa-solid fa-hand"></i> Waspadai Manipulasi AI</span>';
-                if (diagDetailText) {
-                    diagDetailText.innerHTML = `<strong>Mengapa Terdeteksi AI?</strong> Filter konvolusi ResNet18 mengidentifikasi jejak diskretisasi piksel sintetis dan ketidakkonsistenan frekuensi tinggi (spektrum FFT). Anomali ini merupakan karakteristik bawaan proses difusi laten (seperti Midjourney, DALL-E, atau Stable Diffusion) pada saat merekonstruksi citra dari noise acak.`;
-                }
-            }
-
-            document.getElementById('probRealText').textContent = realPct.replace('.', ',') + '%';
-            document.getElementById('probFakeText').textContent = fakePct.replace('.', ',') + '%';
-
-            setTimeout(() => {
-                document.getElementById('probRealBar').style.width = realPct + '%';
-                document.getElementById('probFakeBar').style.width = fakePct + '%';
-            }, 100);
-
+            const titles = {REAL: 'Cenderung non-AI', FAKE: 'Terindikasi AI', UNCERTAIN: 'Belum dapat dipastikan'};
+            document.getElementById('resultClassBadge').textContent = label === 'UNCERTAIN' ? 'PERLU PEMERIKSAAN LANJUTAN' : 'INDIKASI MODEL — BUKAN VERIFIKASI';
+            document.getElementById('resultMainTitle').textContent = titles[label];
+            document.getElementById('resultSummaryDesc').textContent = data.summary;
+            document.getElementById('verdictIcon').innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+            const percent = value => (value * 100).toFixed(1).replace('.', ',') + '%';
+            document.getElementById('confidenceNumber').textContent = percent(probFake);
+            document.getElementById('confidenceTag').textContent = label === 'UNCERTAIN' ? 'AREA RAGU' : 'SKOR KELAS AI';
+            document.getElementById('probRealText').textContent = percent(probReal);
+            document.getElementById('probFakeText').textContent = percent(probFake);
+            document.getElementById('probRealBar').style.width = (probReal * 100) + '%';
+            document.getElementById('probFakeBar').style.width = (probFake * 100) + '%';
+            document.getElementById('spectrumMarker').style.left = (probFake * 100) + '%';
+            document.getElementById('spectrumScoreText').textContent = percent(probFake);
             document.getElementById('inferTimeText').textContent = elapsedMs + ' ms';
+            document.getElementById('diagTexture').textContent = 'ResNet18 · gambar utuh';
+            document.getElementById('diagFrequency').textContent = 'Softmax terkalibrasi';
+            document.getElementById('diagNoise').textContent = 'Belum tervalidasi';
+            document.getElementById('diagAction').textContent = 'Periksa sumber / foto sebelum edit';
+            document.getElementById('diagDetailText').textContent = (data.warnings || []).join(' ');
         }
 
         // Tombol Salin Ringkasan & Uji Gambar Lain
@@ -555,7 +501,8 @@
             const realPct = document.getElementById('probRealText').textContent;
             const fakePct = document.getElementById('probFakeText').textContent;
             const file = document.getElementById('metaFileName').textContent;
-            const textToCopy = `[DeepGuard AI Forensics]\nBerkas: ${file}\nHasil: ${title}\nKeyakinan: ${conf}\nIndeks AI: ${fakePct} AI | Asli: ${realPct}\nModel: ResNet18 Deep Convolutional Neural Network`;
+            const limitations = document.getElementById('diagDetailText').textContent;
+            const textToCopy = `[DeepGuard AI]\nBerkas: ${file}\nHasil: ${title}\nSkor kelas AI: ${conf}\nAI: ${fakePct} | Non-AI: ${realPct}\nModel: ResNet18\nCatatan: ${limitations}`;
 
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const copyBtnText = document.getElementById('copyBtnText');
@@ -570,12 +517,13 @@
 
         // TOMBOL UTAMA: Analisis Citra (Memicu Animasi Scanning)
         btnAnalyze.addEventListener('click', async () => {
-            if (!currentValidFile && !currentSimulationMode) {
+            if (!currentValidFile) {
                 showError('Silakan pilih berkas gambar terlebih dahulu sebelum menekan tombol Analisis Citra.');
                 return;
             }
 
             hideError();
+            const analysisVersion = selectionVersion;
             btnAnalyze.disabled = true;
             processStatus.classList.remove('hidden');
 
@@ -590,11 +538,13 @@
             ];
 
             for (const st of stages) {
+                if (analysisVersion !== selectionVersion) return;
                 statusStageText.innerHTML = st.text;
                 statusPercentText.textContent = st.pct + '%';
                 progressBarFill.style.width = st.pct + '%';
                 await new Promise(r => setTimeout(r, 380));
             }
+            if (analysisVersion !== selectionVersion) return;
 
             const startTime = performance.now();
 
@@ -612,21 +562,18 @@
                     formData.append('image', currentValidFile);
                     const response = await fetch('/api/predict', { method: 'POST', body: formData });
                     const data = await response.json().catch(() => ({}));
+                    if (analysisVersion !== selectionVersion) return;
                     if (!response.ok || data.error) {
                         showError(data.error || `Inferensi gagal dari server (Status: ${response.status}).`);
                         previewBox.classList.remove('scan-active');
                         btnAnalyze.disabled = false;
                         return;
                     }
-                    renderPredictionResult(
-                        data.label,
-                        data.prob_real,
-                        data.prob_fake,
-                        data.inference_ms || Math.round(performance.now() - startTime)
-                    );
+                    renderPredictionResult(data);
                     btnAnalyze.disabled = false;
                     return;
                 } catch (err) {
+                    if (analysisVersion !== selectionVersion) return;
                     showError('Koneksi ke backend Flask terputus: ' + err.message);
                     previewBox.classList.remove('scan-active');
                     btnAnalyze.disabled = false;
@@ -634,95 +581,10 @@
                 }
             }
 
-            // Simulasi mode cepat (tombol sampel bawaan — bukan file upload)
-            if (currentSimulationMode) {
-                let label, probReal, probFake;
-                if (currentSimulationMode === 'FAKE') {
-                    label = 'FAKE'; probReal = 0.162; probFake = 0.838;
-                } else {
-                    label = 'REAL'; probReal = 0.846; probFake = 0.154;
-                }
-                renderPredictionResult(label, probReal, probFake, 38);
-                btnAnalyze.disabled = false;
-                return;
-            }
-
             // Jika sampai di sini tanpa file valid, tampilkan error
             showError('Tidak ada berkas yang dapat dianalisis. Silakan unggah gambar terlebih dahulu.');
             previewBox.classList.remove('scan-active');
             btnAnalyze.disabled = false;
-        });
-
-        // Generator Sampel Canvas untuk Uji Cepat
-        function generateSampleCanvasDataURL(titleText, subText, bgColor, accentColor) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 448;
-            canvas.height = 448;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, 448, 448);
-
-            ctx.strokeStyle = accentColor + '20';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 448; i += 32) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 448); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(448, i); ctx.stroke();
-            }
-
-            ctx.strokeStyle = accentColor + '80';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(24, 24, 400, 400);
-
-            ctx.strokeStyle = accentColor;
-            ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.moveTo(24, 54); ctx.lineTo(24, 24); ctx.lineTo(54, 24); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(394, 24); ctx.lineTo(424, 24); ctx.lineTo(424, 54); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(24, 394); ctx.lineTo(24, 424); ctx.lineTo(54, 424); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(394, 424); ctx.lineTo(424, 424); ctx.lineTo(424, 394); ctx.stroke();
-
-            ctx.fillStyle = accentColor;
-            ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(titleText, 224, 200);
-
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '13.5px "Plus Jakarta Sans", sans-serif';
-            ctx.fillText(subText, 224, 235);
-
-            ctx.fillStyle = '#64748b';
-            ctx.font = '11px "JetBrains Mono", monospace';
-            ctx.fillText('INPUT TENSOR: 224 × 224 RGB', 224, 265);
-
-            return canvas.toDataURL('image/png');
-        }
-
-        document.getElementById('btnSimReal').addEventListener('click', () => {
-            resetAll();
-            currentSimulationMode = 'REAL';
-            previewImage.src = generateSampleCanvasDataURL('SAMPEL CITRA (FOTO ASLI)', 'Distribusi Tekstur Sensor Optik Alami', '#061009', '#10b981');
-            previewImage.classList.remove('hidden');
-            previewPlaceholder.classList.add('hidden');
-            metaFileName.textContent = 'sample_natural_photo.jpg';
-            metaFileType.textContent = 'image/jpeg';
-            metaFileSize.textContent = '412,5 KB';
-            metaFileDim.textContent = '1024×1024 px → 224×224 px';
-            btnAnalyze.disabled = false;
-            btnAnalyze.click();
-        });
-
-        document.getElementById('btnSimFake').addEventListener('click', () => {
-            resetAll();
-            currentSimulationMode = 'FAKE';
-            previewImage.src = generateSampleCanvasDataURL('SAMPEL CITRA (BUATAN AI)', 'Artefak Generator Difusi Sintetis', '#120708', '#f43f5e');
-            previewImage.classList.remove('hidden');
-            previewPlaceholder.classList.add('hidden');
-            metaFileName.textContent = 'ai_generated_sample.png';
-            metaFileType.textContent = 'image/png';
-            metaFileSize.textContent = '684,2 KB';
-            metaFileDim.textContent = '512×512 px → 224×224 px';
-            btnAnalyze.disabled = false;
-            btnAnalyze.click();
         });
 
         document.getElementById('btnSimInvalid').addEventListener('click', () => {

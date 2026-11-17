@@ -1578,3 +1578,6 @@ body {
         text-align: center;
     }
 }
+
+.result-uncertain { border: 1px solid var(--warn-color, #fbbf24); }
+.result-uncertain .result-label-title, .result-uncertain .result-badge-large { color: var(--warn-color, #fbbf24); }

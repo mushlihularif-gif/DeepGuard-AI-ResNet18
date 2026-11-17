@@ -113,24 +113,25 @@
                 <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Dataset Evaluasi</span>
-                        <strong style="color: #ffffff;">Tiny-GenImage Benchmark</strong>
+                        <strong style="color: #ffffff;">Subset Tiny-GenImage + Hemg</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Total Citra Teruji</span>
-                        <strong style="color: #ffffff; font-family: var(--font-mono);">7.000 Data Uji Final</strong>
+                        <strong style="color: #ffffff; font-family: var(--font-mono);">{{ model_info.evaluation.all.n if model_info.evaluation else '—' }} gambar</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Akurasi Keseluruhan</span>
-                        <strong style="color: var(--real-color); font-family: var(--font-mono);">72,0%</strong>
+                        <strong style="color: var(--real-color); font-family: var(--font-mono);">{{ '%.1f%%'|format(model_info.evaluation.all.accuracy * 100) if model_info.evaluation else '—' }}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
-                        <span style="color: var(--text-secondary);">Presisi Deteksi AI (Fake)</span>
-                        <strong style="color: var(--primary); font-family: var(--font-mono);">0,78</strong>
+                        <span style="color: var(--text-secondary);">Cakupan keputusan (di luar area ragu)</span>
+                        <strong style="color: var(--primary); font-family: var(--font-mono);">{{ '%.1f%%'|format(model_info.evaluation.all.decision_coverage * 100) if model_info.evaluation else '—' }}</strong>
                     </div>
                 </div>
             </div>
         </section>
 
+        <p style="color:var(--text-secondary); margin:20px 0;">Hasil benchmark berlaku hanya untuk subset uji. Hemg mencakup karya seni non-AI, bukan hanya foto kamera. Edit lokal (misalnya ganti baju) dan generator baru belum tervalidasi. Gambar evaluasi dipisahkan dari latihan, pemilihan epoch, dan kalibrasi.</p>
         <!-- Komitmen Privasi & Etika -->
         <section class="card" style="padding: 24px;">
             <div style="display: flex; gap: 16px; align-items: flex-start;">

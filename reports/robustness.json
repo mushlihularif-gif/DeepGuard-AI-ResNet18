@@ -1,0 +1,66 @@
+{
+  "transformation": "longest_side_max512_then_jpeg_quality70",
+  "note": "Same test images, not independent additional samples; no retuning after evaluation",
+  "metrics": {
+    "all": {
+      "n": 1600,
+      "accuracy": 0.85,
+      "balanced_accuracy": 0.8500000000000001,
+      "ai_recall": 0.84125,
+      "real_recall": 0.85875,
+      "confusion_matrix_real_fake": [
+        [
+          687,
+          113
+        ],
+        [
+          127,
+          673
+        ]
+      ],
+      "brier": 0.10490461382706075,
+      "decision_coverage": 0.71625,
+      "decided_accuracy": 0.9345549738219895
+    },
+    "hemg": {
+      "n": 800,
+      "accuracy": 0.88125,
+      "balanced_accuracy": 0.88125,
+      "ai_recall": 0.87,
+      "real_recall": 0.8925,
+      "confusion_matrix_real_fake": [
+        [
+          357,
+          43
+        ],
+        [
+          52,
+          348
+        ]
+      ],
+      "brier": 0.08028329120848215,
+      "decision_coverage": 0.7625,
+      "decided_accuracy": 0.9573770491803278
+    },
+    "tiny": {
+      "n": 800,
+      "accuracy": 0.81875,
+      "balanced_accuracy": 0.81875,
+      "ai_recall": 0.8125,
+      "real_recall": 0.825,
+      "confusion_matrix_real_fake": [
+        [
+          330,
+          70
+        ],
+        [
+          75,
+          325
+        ]
+      ],
+      "brier": 0.12952593644563934,
+      "decision_coverage": 0.67,
+      "decided_accuracy": 0.9085820895522388
+    }
+  }
+}

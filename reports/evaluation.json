@@ -1,0 +1,604 @@
+{
+  "manifest_sha256": "4594a35f3d27399494c649161fd271605186b2c3b28efc5ab23167ccf9a4d485",
+  "selected_epoch": 3,
+  "temperature": 1.1398723125457764,
+  "history": [
+    {
+      "epoch": 1,
+      "validation": {
+        "all": {
+          "n": 800,
+          "accuracy": 0.84375,
+          "balanced_accuracy": 0.84375,
+          "ai_recall": 0.875,
+          "real_recall": 0.8125,
+          "confusion_matrix_real_fake": [
+            [
+              325,
+              75
+            ],
+            [
+              50,
+              350
+            ]
+          ],
+          "brier": 0.11360470341687513,
+          "decision_coverage": 0.6575,
+          "decided_accuracy": 0.9239543726235742
+        },
+        "hemg": {
+          "n": 400,
+          "accuracy": 0.8675,
+          "balanced_accuracy": 0.8674999999999999,
+          "ai_recall": 0.905,
+          "real_recall": 0.83,
+          "confusion_matrix_real_fake": [
+            [
+              166,
+              34
+            ],
+            [
+              19,
+              181
+            ]
+          ],
+          "brier": 0.10059854667469509,
+          "decision_coverage": 0.7325,
+          "decided_accuracy": 0.9215017064846417
+        },
+        "tiny": {
+          "n": 400,
+          "accuracy": 0.82,
+          "balanced_accuracy": 0.8200000000000001,
+          "ai_recall": 0.845,
+          "real_recall": 0.795,
+          "confusion_matrix_real_fake": [
+            [
+              159,
+              41
+            ],
+            [
+              31,
+              169
+            ]
+          ],
+          "brier": 0.1266108601590552,
+          "decision_coverage": 0.5825,
+          "decided_accuracy": 0.927038626609442
+        }
+      },
+      "seconds": 104.03032064437866
+    },
+    {
+      "epoch": 2,
+      "validation": {
+        "all": {
+          "n": 800,
+          "accuracy": 0.84875,
+          "balanced_accuracy": 0.84875,
+          "ai_recall": 0.7725,
+          "real_recall": 0.925,
+          "confusion_matrix_real_fake": [
+            [
+              370,
+              30
+            ],
+            [
+              91,
+              309
+            ]
+          ],
+          "brier": 0.10844391088843118,
+          "decision_coverage": 0.705,
+          "decided_accuracy": 0.9273049645390071
+        },
+        "hemg": {
+          "n": 400,
+          "accuracy": 0.8775,
+          "balanced_accuracy": 0.8775,
+          "ai_recall": 0.845,
+          "real_recall": 0.91,
+          "confusion_matrix_real_fake": [
+            [
+              182,
+              18
+            ],
+            [
+              31,
+              169
+            ]
+          ],
+          "brier": 0.09227884334796062,
+          "decision_coverage": 0.76,
+          "decided_accuracy": 0.9407894736842105
+        },
+        "tiny": {
+          "n": 400,
+          "accuracy": 0.82,
+          "balanced_accuracy": 0.82,
+          "ai_recall": 0.7,
+          "real_recall": 0.94,
+          "confusion_matrix_real_fake": [
+            [
+              188,
+              12
+            ],
+            [
+              60,
+              140
+            ]
+          ],
+          "brier": 0.12460897842890173,
+          "decision_coverage": 0.65,
+          "decided_accuracy": 0.9115384615384615
+        }
+      },
+      "seconds": 74.46015691757202
+    },
+    {
+      "epoch": 3,
+      "validation": {
+        "all": {
+          "n": 800,
+          "accuracy": 0.88625,
+          "balanced_accuracy": 0.88625,
+          "ai_recall": 0.885,
+          "real_recall": 0.8875,
+          "confusion_matrix_real_fake": [
+            [
+              355,
+              45
+            ],
+            [
+              46,
+              354
+            ]
+          ],
+          "brier": 0.0856093731977336,
+          "decision_coverage": 0.77125,
+          "decided_accuracy": 0.946515397082658
+        },
+        "hemg": {
+          "n": 400,
+          "accuracy": 0.905,
+          "balanced_accuracy": 0.905,
+          "ai_recall": 0.91,
+          "real_recall": 0.9,
+          "confusion_matrix_real_fake": [
+            [
+              180,
+              20
+            ],
+            [
+              18,
+              182
+            ]
+          ],
+          "brier": 0.07101375237073558,
+          "decision_coverage": 0.8175,
+          "decided_accuracy": 0.9510703363914373
+        },
+        "tiny": {
+          "n": 400,
+          "accuracy": 0.8675,
+          "balanced_accuracy": 0.8674999999999999,
+          "ai_recall": 0.86,
+          "real_recall": 0.875,
+          "confusion_matrix_real_fake": [
+            [
+              175,
+              25
+            ],
+            [
+              28,
+              172
+            ]
+          ],
+          "brier": 0.10020499402473158,
+          "decision_coverage": 0.725,
+          "decided_accuracy": 0.9413793103448276
+        }
+      },
+      "seconds": 237.39233231544495
+    },
+    {
+      "epoch": 4,
+      "validation": {
+        "all": {
+          "n": 800,
+          "accuracy": 0.88,
+          "balanced_accuracy": 0.88,
+          "ai_recall": 0.9025,
+          "real_recall": 0.8575,
+          "confusion_matrix_real_fake": [
+            [
+              343,
+              57
+            ],
+            [
+              39,
+              361
+            ]
+          ],
+          "brier": 0.08653324459220915,
+          "decision_coverage": 0.78625,
+          "decided_accuracy": 0.9459459459459459
+        },
+        "hemg": {
+          "n": 400,
+          "accuracy": 0.895,
+          "balanced_accuracy": 0.895,
+          "ai_recall": 0.91,
+          "real_recall": 0.88,
+          "confusion_matrix_real_fake": [
+            [
+              176,
+              24
+            ],
+            [
+              18,
+              182
+            ]
+          ],
+          "brier": 0.07160486748609009,
+          "decision_coverage": 0.8575,
+          "decided_accuracy": 0.9533527696793003
+        },
+        "tiny": {
+          "n": 400,
+          "accuracy": 0.865,
+          "balanced_accuracy": 0.865,
+          "ai_recall": 0.895,
+          "real_recall": 0.835,
+          "confusion_matrix_real_fake": [
+            [
+              167,
+              33
+            ],
+            [
+              21,
+              179
+            ]
+          ],
+          "brier": 0.10146162169832822,
+          "decision_coverage": 0.715,
+          "decided_accuracy": 0.9370629370629371
+        }
+      },
+      "seconds": 245.07168889045715
+    },
+    {
+      "epoch": 5,
+      "validation": {
+        "all": {
+          "n": 800,
+          "accuracy": 0.8725,
+          "balanced_accuracy": 0.8725,
+          "ai_recall": 0.8625,
+          "real_recall": 0.8825,
+          "confusion_matrix_real_fake": [
+            [
+              353,
+              47
+            ],
+            [
+              55,
+              345
+            ]
+          ],
+          "brier": 0.08571950477620191,
+          "decision_coverage": 0.795,
+          "decided_accuracy": 0.9465408805031447
+        },
+        "hemg": {
+          "n": 400,
+          "accuracy": 0.9025,
+          "balanced_accuracy": 0.9025000000000001,
+          "ai_recall": 0.905,
+          "real_recall": 0.9,
+          "confusion_matrix_real_fake": [
+            [
+              180,
+              20
+            ],
+            [
+              19,
+              181
+            ]
+          ],
+          "brier": 0.06724765929600059,
+          "decision_coverage": 0.86,
+          "decided_accuracy": 0.9534883720930233
+        },
+        "tiny": {
+          "n": 400,
+          "accuracy": 0.8425,
+          "balanced_accuracy": 0.8425,
+          "ai_recall": 0.82,
+          "real_recall": 0.865,
+          "confusion_matrix_real_fake": [
+            [
+              173,
+              27
+            ],
+            [
+              36,
+              164
+            ]
+          ],
+          "brier": 0.10419135025640326,
+          "decision_coverage": 0.73,
+          "decided_accuracy": 0.9383561643835616
+        }
+      },
+      "seconds": 246.8196029663086
+    },
+    {
+      "epoch": 6,
+      "validation": {
+        "all": {
+          "n": 800,
+          "accuracy": 0.875,
+          "balanced_accuracy": 0.875,
+          "ai_recall": 0.885,
+          "real_recall": 0.865,
+          "confusion_matrix_real_fake": [
+            [
+              346,
+              54
+            ],
+            [
+              46,
+              354
+            ]
+          ],
+          "brier": 0.08572299618533975,
+          "decision_coverage": 0.79625,
+          "decided_accuracy": 0.9387755102040817
+        },
+        "hemg": {
+          "n": 400,
+          "accuracy": 0.905,
+          "balanced_accuracy": 0.905,
+          "ai_recall": 0.91,
+          "real_recall": 0.9,
+          "confusion_matrix_real_fake": [
+            [
+              180,
+              20
+            ],
+            [
+              18,
+              182
+            ]
+          ],
+          "brier": 0.06754287172468156,
+          "decision_coverage": 0.855,
+          "decided_accuracy": 0.9502923976608187
+        },
+        "tiny": {
+          "n": 400,
+          "accuracy": 0.845,
+          "balanced_accuracy": 0.845,
+          "ai_recall": 0.86,
+          "real_recall": 0.83,
+          "confusion_matrix_real_fake": [
+            [
+              166,
+              34
+            ],
+            [
+              28,
+              172
+            ]
+          ],
+          "brier": 0.10390312064599794,
+          "decision_coverage": 0.7375,
+          "decided_accuracy": 0.9254237288135593
+        }
+      },
+      "seconds": 223.52835083007812
+    }
+  ],
+  "limitations": [
+    "Tiny validation was used by legacy models; not an independent legacy test.",
+    "Hemg RealArt includes artwork; not equivalent to camera authenticity.",
+    "64x64 RGB hash removes exact normalized duplicates, not all near duplicates.",
+    "No verified partial AI edits or modern generator holdout in this corpus."
+  ],
+  "test": {
+    "all": {
+      "n": 1600,
+      "accuracy": 0.861875,
+      "balanced_accuracy": 0.861875,
+      "ai_recall": 0.85375,
+      "real_recall": 0.87,
+      "confusion_matrix_real_fake": [
+        [
+          696,
+          104
+        ],
+        [
+          117,
+          683
+        ]
+      ],
+      "brier": 0.0990050770670766,
+      "decision_coverage": 0.7225,
+      "decided_accuracy": 0.9420415224913494
+    },
+    "hemg": {
+      "n": 800,
+      "accuracy": 0.895,
+      "balanced_accuracy": 0.895,
+      "ai_recall": 0.8775,
+      "real_recall": 0.9125,
+      "confusion_matrix_real_fake": [
+        [
+          365,
+          35
+        ],
+        [
+          49,
+          351
+        ]
+      ],
+      "brier": 0.07586755521687548,
+      "decision_coverage": 0.77,
+      "decided_accuracy": 0.9626623376623377
+    },
+    "tiny": {
+      "n": 800,
+      "accuracy": 0.82875,
+      "balanced_accuracy": 0.82875,
+      "ai_recall": 0.83,
+      "real_recall": 0.8275,
+      "confusion_matrix_real_fake": [
+        [
+          331,
+          69
+        ],
+        [
+          68,
+          332
+        ]
+      ],
+      "brier": 0.12214259891727774,
+      "decision_coverage": 0.675,
+      "decided_accuracy": 0.9185185185185185
+    }
+  },
+  "baselines": {
+    "baseline_local": {
+      "all": {
+        "n": 1600,
+        "accuracy": 0.6425,
+        "balanced_accuracy": 0.6425,
+        "ai_recall": 0.47625,
+        "real_recall": 0.80875,
+        "confusion_matrix_real_fake": [
+          [
+            647,
+            153
+          ],
+          [
+            419,
+            381
+          ]
+        ],
+        "brier": 0.306152381506596,
+        "decision_coverage": 0.828125,
+        "decided_accuracy": 0.6618867924528302
+      },
+      "hemg": {
+        "n": 800,
+        "accuracy": 0.5,
+        "balanced_accuracy": 0.5,
+        "ai_recall": 0.095,
+        "real_recall": 0.905,
+        "confusion_matrix_real_fake": [
+          [
+            362,
+            38
+          ],
+          [
+            362,
+            38
+          ]
+        ],
+        "brier": 0.44191771332653024,
+        "decision_coverage": 0.8725,
+        "decided_accuracy": 0.5171919770773639
+      },
+      "tiny": {
+        "n": 800,
+        "accuracy": 0.785,
+        "balanced_accuracy": 0.785,
+        "ai_recall": 0.8575,
+        "real_recall": 0.7125,
+        "confusion_matrix_real_fake": [
+          [
+            285,
+            115
+          ],
+          [
+            57,
+            343
+          ]
+        ],
+        "brier": 0.17038704968666174,
+        "decision_coverage": 0.78375,
+        "decided_accuracy": 0.8229665071770335
+      }
+    },
+    "baseline_remote": {
+      "all": {
+        "n": 1600,
+        "accuracy": 0.62375,
+        "balanced_accuracy": 0.62375,
+        "ai_recall": 0.3375,
+        "real_recall": 0.91,
+        "confusion_matrix_real_fake": [
+          [
+            728,
+            72
+          ],
+          [
+            530,
+            270
+          ]
+        ],
+        "brier": 0.30045043670730354,
+        "decision_coverage": 0.764375,
+        "decided_accuracy": 0.6582174979558463
+      },
+      "hemg": {
+        "n": 800,
+        "accuracy": 0.51375,
+        "balanced_accuracy": 0.51375,
+        "ai_recall": 0.115,
+        "real_recall": 0.9125,
+        "confusion_matrix_real_fake": [
+          [
+            365,
+            35
+          ],
+          [
+            354,
+            46
+          ]
+        ],
+        "brier": 0.40476163852285935,
+        "decision_coverage": 0.7975,
+        "decided_accuracy": 0.5250783699059561
+      },
+      "tiny": {
+        "n": 800,
+        "accuracy": 0.73375,
+        "balanced_accuracy": 0.73375,
+        "ai_recall": 0.56,
+        "real_recall": 0.9075,
+        "confusion_matrix_real_fake": [
+          [
+            363,
+            37
+          ],
+          [
+            176,
+            224
+          ]
+        ],
+        "brier": 0.19613923489174762,
+        "decision_coverage": 0.73125,
+        "decided_accuracy": 0.8034188034188035
+      }
+    }
+  },
+  "model_sha256": "1eddfa379046b3fc7c7a7b1d85742a685446f9e1c15119646cd6a75d6faff8bd",
+  "verification": {
+    "python_regression_tests": 16,
+    "frontend_tests": "passed: three verdict states, literal error rendering, stale result cancellation",
+    "live_api_and_browser": "passed; public AI sample returned UNCERTAIN, matching browser display",
+    "test_examples_in_total": 1600
+  }
+}

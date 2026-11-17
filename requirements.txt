@@ -1,4 +1,4 @@
-Flask
-torch
-torchvision
-Pillow
+Flask==3.1.3
+torch==2.6.0
+torchvision==0.21.0
+Pillow==12.2.0

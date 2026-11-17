@@ -30,3 +30,7 @@ models/*.tmp
 *.log
 scratch/
 .system_generated/
+work/
+.venv/
+data/
+models/candidate*.pt

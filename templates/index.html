@@ -178,18 +178,18 @@
         <section class="grid-4" style="margin-bottom: 28px;">
             <div class="metric-card">
                 <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
-                <div class="metric-value">72,0%</div>
-                <div class="metric-label">Akurasi Uji Validasi</div>
+                <div class="metric-value">{{ '%.1f%%'|format(model_info.evaluation.all.accuracy * 100) if model_info.evaluation else '—' }}</div>
+                <div class="metric-label">Akurasi subset uji*</div>
             </div>
             <div class="metric-card">
                 <div class="metric-icon"><i class="fa-solid fa-crosshairs"></i></div>
-                <div class="metric-value">0,78</div>
-                <div class="metric-label">Presisi Deteksi AI</div>
+                <div class="metric-value">{{ model_info.evaluation.all.n if model_info.evaluation else '—' }}</div>
+                <div class="metric-label">Gambar pada subset uji*</div>
             </div>
             <div class="metric-card">
                 <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
-                <div class="metric-value">&lt; 50ms</div>
-                <div class="metric-label">Latensi Inferensi</div>
+                <div class="metric-value">CPU / GPU</div>
+                <div class="metric-label">Pemrosesan lokal</div>
             </div>
             <div class="metric-card">
                 <div class="metric-icon"><i class="fa-solid fa-database"></i></div>
@@ -198,6 +198,7 @@
             </div>
         </section>
 
+        <p style="color:var(--text-secondary); margin-bottom:24px;">*Uji terbatas pada Tiny-GenImage dan Hemg; bukan ukuran akurasi semua gambar internet. Edit AI lokal belum tervalidasi. Hasil dapat salah.</p>
         <!-- Call to Action Banner -->
         <section class="card" style="text-align: center; padding: 36px 20px;">
             <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
