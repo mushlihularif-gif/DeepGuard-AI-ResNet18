@@ -55,7 +55,7 @@
                 </div>
                 <h3 class="feature-title">Riset Forensik Spasial</h3>
                 <p class="feature-desc">
-                    Mengidentifikasi jejak mikroskopis yang ditinggalkan model difusi sintetis pada domain spasial dan frekuensi piksel.
+                    Mempelajari pola visual dari contoh non-AI dan AI. Sistem tidak memverifikasi asal gambar atau mengukur jejak sensor kamera.
                 </p>
             </div>
 
@@ -65,7 +65,7 @@
                 </div>
                 <h3 class="feature-title">Inferensi Berkecepatan Tinggi</h3>
                 <p class="feature-desc">
-                    Arsitektur jaringan konvolusi ResNet18 dioptimalkan untuk mengeksekusi analisis dalam waktu milidetik secara efisien di CPU.
+                    Mesin aktif: {{ model_info.architecture }}. ResNet18 tetap tersedia sebagai baseline penelitian. Waktu proses bergantung perangkat.
                 </p>
             </div>
 
@@ -89,7 +89,7 @@
                 <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Model Inti</span>
-                        <strong style="color: #ffffff; font-family: var(--font-mono);">ResNet18 (Residual Network)</strong>
+                        <strong style="color: #ffffff; font-family: var(--font-mono);">{{ model_info.architecture }}</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Metode Pelatihan</span>
@@ -97,11 +97,11 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Dimensi Input</span>
-                        <strong style="color: #ffffff; font-family: var(--font-mono);">224 &times; 224 &times; 3 (RGB)</strong>
+                        <strong style="color: #ffffff; font-family: var(--font-mono);">{{ model_info.input_size }} &times; {{ model_info.input_size }} &times; 3 (RGB)</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span style="color: var(--text-secondary);">Fungsi Aktivasi Klasifikasi</span>
-                        <strong style="color: var(--primary); font-family: var(--font-mono);">Softmax (Binary Logits)</strong>
+                        <strong style="color: var(--primary); font-family: var(--font-mono);">{{ model_info.score_description }}</strong>
                     </div>
                 </div>
             </div>
@@ -113,7 +113,7 @@
                 <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Dataset Evaluasi</span>
-                        <strong style="color: #ffffff;">Subset Tiny-GenImage + Hemg</strong>
+                        <strong style="color: #ffffff;">Pilot CommunityForensics-Eval / CompEval</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
                         <span style="color: var(--text-secondary);">Total Citra Teruji</span>
@@ -131,7 +131,7 @@
             </div>
         </section>
 
-        <p style="color:var(--text-secondary); margin:20px 0;">Hasil benchmark berlaku hanya untuk subset uji. Hemg mencakup karya seni non-AI, bukan hanya foto kamera. Edit lokal (misalnya ganti baju) dan generator baru belum tervalidasi. Gambar evaluasi dipisahkan dari latihan, pemilihan epoch, dan kalibrasi.</p>
+        <p style="color:var(--text-secondary); margin:20px 0;">Pilot eksternal berisi 84 gambar (32 non-AI, 52 AI); bukan jaminan akurasi umum. Akurasi biner memakai ambang 0,5; keputusan aplikasi memakai area ragu 0,2–0,8. Sebanyak 11 dari 32 permintaan data gagal, sehingga sampel terbatas. Tidak ada pelatihan atau penyesuaian ambang pada pilot ini, tetapi hasilnya dipakai memilih mesin. Overlap dengan seluruh korpus pralatih belum diaudit. Edit lokal belum tervalidasi.</p>
         <!-- Komitmen Privasi & Etika -->
         <section class="card" style="padding: 24px;">
             <div style="display: flex; gap: 16px; align-items: flex-start;">
@@ -153,7 +153,7 @@
     <footer class="footer">
         <div class="footer-container">
             <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
-            <span>Didukung Model ResNet18 &bull; Privasi Terjamin &bull; 2026</span>
+            <span>Model: {{ model_info.architecture }} &bull; Privasi Terjamin &bull; 2026</span>
         </div>
     </footer>
 

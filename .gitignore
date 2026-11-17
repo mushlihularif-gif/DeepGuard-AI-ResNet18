@@ -34,3 +34,5 @@ work/
 .venv/
 data/
 models/candidate*.pt
+models/community_forensics.safetensors
+models/*.partial

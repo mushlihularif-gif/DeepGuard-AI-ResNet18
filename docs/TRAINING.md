@@ -2,12 +2,16 @@
 
 ## Memakai aplikasi tidak memerlukan dataset
 
-Flask hanya membutuhkan kode, library, dan checkpoint sekitar 45 MB. Dataset
+Flask hanya membutuhkan kode, library, dan checkpoint: sekitar 87 MB untuk mesin
+utama Community Forensics, atau 45 MB untuk baseline ResNet18. Jalankan
+`pip install -r requirements-detector.txt` lalu `python setup_detector.py` untuk
+model utama. Model tersebut pralatih dari penulis; bukan hasil training ResNet18
+proyek. Lihat [evaluasi lintas sumber](../reports/CROSS_DOMAIN.md). Dataset
 dipakai saat training/evaluasi, bukan diunduh ketika pengguna mengunggah gambar.
 Versi ini tidak melatih ulang saat startup. File `calibration_anchors.py` dan
 `models/calibrated_*.flag` dari versi lama tidak lagi dipakai.
 
-## Reproduksi eksperimen lokal
+## Reproduksi eksperimen ResNet18 lokal
 
 Instal `pip install -r requirements-train.txt`. Dataset yang dipakai saat perbaikan
 sudah tersedia di laptop; tidak ada unduhan dataset tambahan. Jalankan dari root:

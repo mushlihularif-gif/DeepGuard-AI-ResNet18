@@ -1,5 +1,12 @@
 # Audit perbaikan DeepGuard — 17 November 2026
 
+**Catatan historis:** audit ini menjelaskan perbaikan ResNet18 sebelumnya.
+Keluhan berikutnya menunjukkan kegagalan generalisasi. Mesin utama telah diganti
+ke Community Forensics ViT-S/16 berdasarkan [pilot lintas sumber](CROSS_DOMAIN.md).
+ResNet18 dipertahankan sebagai baseline; angka benchmark di bawah tidak menjadi
+klaim akurasi semua gambar. Kasus ilustrasi mesin pesawat kini ditemukan dan diuji
+terpisah, tetapi foto kamera yang dilaporkan pengguna tetap tidak tersedia.
+
 ## Masalah yang benar-benar ditemukan
 
 Kode lokal awal: `24f4960`; perubahan GitHub `f6ce766` diintegrasikan sebelum

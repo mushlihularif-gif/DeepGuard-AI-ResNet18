@@ -52,12 +52,12 @@
 
                 <!-- Sapaan Dinamis & Tagline Berganti-ganti -->
                 <div class="dynamic-greeting-wrap">
-                    <span id="dynamicGreeting" class="dynamic-greeting">Scan dengan ini untuk mendeteksi keaslian gambar</span>
+                    <span id="dynamicGreeting" class="dynamic-greeting">Periksa indikasi AI pada gambar</span>
                     <span class="typing-cursor"></span>
                 </div>
 
                 <p class="hero-desc">
-                    Identifikasi citra sintetis hasil model Generative AI, pemalsuan bukti visual, dan rekayasa deepfake secara instan. Membedah pola artefak mikroskopis domain spasial dan frekuensi piksel menggunakan jaringan saraf konvolusi ResNet18.
+                    Periksa indikasi citra buatan AI dengan {{ model_info.architecture }}. Model mempelajari pola visual dari data latihan. Hasil dapat salah dan belum membuktikan kemampuan mendeteksi edit AI pada sebagian gambar.
                 </p>
 
                 <div class="hero-actions">
@@ -73,7 +73,7 @@
                 <div class="hero-metrics-strip">
                     <span><i class="fa-solid fa-bolt" style="color: var(--primary);"></i> Inferensi <strong>&sim;35ms</strong></span>
                     <span><i class="fa-solid fa-shield-check" style="color: var(--real-color);"></i> Privasi <strong>In-Memory</strong></span>
-                    <span><i class="fa-solid fa-microchip" style="color: var(--primary);"></i> Arsitektur <strong>ResNet18</strong></span>
+                    <span><i class="fa-solid fa-microchip" style="color: var(--primary);"></i> Arsitektur <strong>{{ model_info.architecture }}</strong></span>
                 </div>
             </div>
 
@@ -84,7 +84,7 @@
                         <span class="pulse-dot"></span>
                         <span>SCANNER AKTIF</span>
                     </div>
-                    <span>TENSOR: 224&times;224 RGB</span>
+                    <span>TENSOR: {{ model_info.input_size }}&times;{{ model_info.input_size }} RGB</span>
                 </div>
 
                 <div class="scanner-viewport">
@@ -136,7 +136,7 @@
 
                 <div class="scanner-bottom-telemetry">
                     <span class="scanner-status-text" id="scannerStatusReadout">MEMINDAI ARTEFAK SINTETIS...</span>
-                    <span class="scanner-metric-pill" id="scannerCoords">SOFTMAX: CONFIDENCE CHECK</span>
+                    <span class="scanner-metric-pill" id="scannerCoords">ILUSTRASI ALUR MODEL</span>
                 </div>
             </div>
         </section>
@@ -149,7 +149,7 @@
                 </div>
                 <h3 class="feature-title">Analisis Artefak Piksel</h3>
                 <p class="feature-desc">
-                    Mendeteksi anomali pola konvolusi dan inkonsistensi tekstur mikro yang kerap ditinggalkan oleh generator difusi AI.
+                    Membandingkan pola visual dengan representasi yang dipelajari model. Tidak menggunakan nama file atau EXIF untuk menentukan kelas.
                 </p>
             </div>
 
@@ -159,7 +159,7 @@
                 </div>
                 <h3 class="feature-title">Privasi Tanpa Retensi</h3>
                 <p class="feature-desc">
-                    Berkas citra hanya diolah secara <em>in-memory</em> di memori RAM dan langsung dihapus tuntas tanpa disimpan di disk atau database.
+                    Aplikasi mengolah unggahan di memori dan tidak menulisnya ke disk atau database.
                 </p>
             </div>
 
@@ -167,9 +167,9 @@
                 <div class="feature-icon-box">
                     <i class="fa-solid fa-chart-pie"></i>
                 </div>
-                <h3 class="feature-title">Metrik Probabilitas Terukur</h3>
+                <h3 class="feature-title">Skor dan Batas Model</h3>
                 <p class="feature-desc">
-                    Menyajikan persentase keyakinan Softmax yang transparan untuk membedakan citra kamera fisik asli (Real) dan sintesis AI (Fake).
+                    Menampilkan skor kelas non-AI dan AI, beserta area ragu. Skor model bukan peluang keaslian yang sudah terjamin.
                 </p>
             </div>
         </section>
@@ -198,11 +198,11 @@
             </div>
         </section>
 
-        <p style="color:var(--text-secondary); margin-bottom:24px;">*Uji terbatas pada Tiny-GenImage dan Hemg; bukan ukuran akurasi semua gambar internet. Edit AI lokal belum tervalidasi. Hasil dapat salah.</p>
+        <p style="color:var(--text-secondary); margin-bottom:24px;">*Pilot eksternal CommunityForensics-Eval: hanya 84 gambar, pada ambang biner 0,5. Sampel kecil dan tidak seimbang; bukan akurasi semua gambar internet. Tampilan hasil memakai area ragu 0,2–0,8. Edit AI lokal belum tervalidasi.</p>
         <!-- Call to Action Banner -->
         <section class="card" style="text-align: center; padding: 36px 20px;">
             <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
-                Siap Memverifikasi Integritas Citra Digital Anda?
+                Periksa Indikasi AI pada Gambar Anda
             </h2>
             <p style="font-size: 14px; color: var(--text-secondary); max-width: 540px; margin: 0 auto 20px;">
                 Uji foto Anda sekarang secara langsung di browser tanpa instalasi dan tanpa registrasi.
@@ -218,17 +218,17 @@
     <footer class="footer">
         <div class="footer-container">
             <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
-            <span>Didukung Model ResNet18 &bull; Privasi Terjamin &bull; 2026</span>
+            <span>Model: {{ model_info.architecture }} &bull; Privasi Terjamin &bull; 2026</span>
         </div>
     </footer>
 
     <!-- Sapaan Dinamis & Telemetri Real-Time -->
     <script>
         const greetings = [
-            "Scan dengan ini untuk mendeteksi keaslian gambar",
-            "Verifikasi keaslian foto digital secara instan",
-            "Deteksi artefak mikroskopis hasil model Generative AI",
-            "Uji integritas struktur piksel dengan akurasi teruji",
+            "Periksa indikasi AI pada gambar",
+            "Kenali batas model sebelum mengambil keputusan",
+            "Model mempelajari pola visual dari data latihan",
+            "Periksa indikasi AI dengan batas kemampuan yang jelas",
             "Lindungi keamanan visual dari ancaman manipulasi digital"
         ];
 
@@ -267,10 +267,10 @@
 
             // Telemetri status scanner bergerak dinamis
             const statusList = [
-                "MEMINDAI ARTEFAK SINTETIS...",
-                "ANALISIS DISTRIBUSI FREKUENSI...",
-                "EKSTRAKSI TENSOR 224×224 RGB...",
-                "KALKULASI PROBABILITAS RESNET18..."
+                "ILUSTRASI: INPUT GAMBAR",
+                "ILUSTRASI: PREPROCESSING",
+                "INPUT MODEL: {{ model_info.input_size }}×{{ model_info.input_size }} RGB",
+                "MODEL: {{ model_info.architecture }}"
             ];
             let statusIdx = 0;
             const statusEl = document.getElementById('scannerStatusReadout');

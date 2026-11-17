@@ -1,6 +1,7 @@
 """Flask image classifier. Startup loads a checkpoint; it never trains one."""
 import hashlib
 import io
+import json
 import os
 import time
 import warnings
@@ -22,8 +23,11 @@ app.request_class = InMemoryRequest
 MAX_FILE_BYTES = 10 * 1024 * 1024
 app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_BYTES + 64 * 1024
 Image.MAX_IMAGE_PIXELS = 25_000_000
-MODEL_PATH = Path(os.environ.get("DEEPGUARD_MODEL_PATH", Path(__file__).parent / "models/resnet18_model.pt"))
-resnet_model = None
+ROOT = Path(__file__).resolve().parent
+ENGINE = os.environ.get("DEEPGUARD_ENGINE", "community_forensics")
+MODEL_PATH = Path(os.environ.get("DEEPGUARD_MODEL_PATH", ROOT / "models" / (
+    "resnet18_model.pt" if ENGINE == "resnet18" else "community_forensics.safetensors")))
+detector_model = None
 preprocess_pipeline = None
 model_metadata = {}
 model_init_error = None
@@ -33,25 +37,44 @@ device = None
 
 
 def init_model_on_startup():
-    global resnet_model, preprocess_pipeline, model_metadata, model_init_error, device, model_sha256
-    resnet_model, preprocess_pipeline, model_metadata, model_sha256 = None, None, {}, None
+    global detector_model, preprocess_pipeline, model_metadata, model_init_error, device, model_sha256
+    detector_model, preprocess_pipeline, model_metadata, model_sha256 = None, None, {}, None
     try:
         import torch
         from modeling import load_checkpoint, preprocessing
         torch.set_num_threads(4)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model, metadata = load_checkpoint(MODEL_PATH, device)
+        if ENGINE == "community_forensics":
+            from community_detector import load_community
+            model, transform, metadata = load_community(MODEL_PATH, device)
+        elif ENGINE == "resnet18":
+            model, metadata = load_checkpoint(MODEL_PATH, device)
+            transform = preprocessing()
+            metadata.update(architecture="ResNet18", input_size=224, score_type="temperature_scaled_softmax")
+        else:
+            raise ValueError("DEEPGUARD_ENGINE must be community_forensics or resnet18")
         digest = hashlib.sha256(MODEL_PATH.read_bytes()).hexdigest()
-        resnet_model, model_metadata = model, metadata
-        preprocess_pipeline, model_sha256 = preprocessing(), digest
+        # Only show an external result if it belongs to this exact checkpoint.
+        metadata.pop("evaluation", None)
+        report_path = ROOT / "reports/cross_domain.json"
+        if report_path.exists():
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            if report["model_sha256"].get(ENGINE) == digest:
+                metadata["evaluation"] = {"all": report["overall"][ENGINE]}
+        detector_model, model_metadata = model, metadata
+        preprocess_pipeline, model_sha256 = transform, digest
         model_init_error = None
     except Exception:
         model_init_error = "Model belum siap. Periksa checkpoint dan dependensi pada log server."
-        app.logger.exception("Failed to load the validated ResNet18 checkpoint")
+        app.logger.exception("Failed to load selected detector: %s", ENGINE)
 
 
 def model_status():
-    return {"loaded": resnet_model is not None, "architecture": "ResNet18",
+    return {"loaded": detector_model is not None, "engine": ENGINE,
+            "architecture": model_metadata.get("architecture", "Model belum siap"),
+            "input_size": model_metadata.get("input_size", 384 if ENGINE == "community_forensics" else 224),
+            "score_type": model_metadata.get("score_type"),
+            "score_description": ("Sigmoid belum dikalibrasi" if ENGINE == "community_forensics" else "Softmax terkalibrasi"),
             "model_sha256": model_sha256, "device": str(device), "error": model_init_error,
             "class_to_idx": model_metadata.get("class_to_idx"),
             "temperature": model_metadata.get("temperature"),
@@ -134,12 +157,12 @@ def predict_image():
     except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
         return jsonify(error="Gambar rusak, tidak valid, atau resolusinya terlalu besar (maksimum 25 megapiksel)."), 400
 
-    if resnet_model is None or preprocess_pipeline is None:
+    if detector_model is None or preprocess_pipeline is None:
         return jsonify(error=model_init_error or "Model belum siap."), 503
     try:
         import torch
         with inference_lock, torch.inference_mode():
-            logits = resnet_model(preprocess_pipeline(rgb).unsqueeze(0).to(device))
+            logits = detector_model(preprocess_pipeline(rgb).unsqueeze(0).to(device))
             probabilities = torch.softmax(logits / model_metadata["temperature"], dim=1)[0]
             if not torch.isfinite(probabilities).all():
                 raise ValueError("Non-finite model output")
@@ -147,12 +170,18 @@ def predict_image():
         label, summary = decision(prob_fake)
         notes = ["Skor model bukan persentase area gambar yang diedit AI.",
                  "Edit lokal seperti ganti baju, wajah, atau latar belum tervalidasi; hasil REAL tidak menyingkirkannya."]
+        if model_metadata.get("score_type") == "uncalibrated_sigmoid":
+            notes.append("Skor sigmoid belum dikalibrasi: angka tinggi bukan jaminan tingkat keakuratan.")
+            notes.append("Model memakai potongan tengah gambar; edit di tepi bisa tidak teramati.")
         if min(rgb.size) < 128:
             notes.append("Resolusi rendah membatasi detail yang bisa diperiksa.")
         return jsonify(label=label, prob_real=1.0-prob_fake, prob_fake=prob_fake,
                        inference_ms=round((time.perf_counter()-started)*1000, 1),
                        summary=summary, warnings=notes, model_sha256=model_sha256,
-                       score_type="temperature_scaled_softmax", partial_edit_detection_validated=False)
+                       architecture=model_metadata.get("architecture", "ResNet18"),
+                       input_size=model_metadata.get("input_size", 224),
+                       score_type=model_metadata.get("score_type", "temperature_scaled_softmax"),
+                       partial_edit_detection_validated=False)
     except Exception:
         app.logger.exception("Inference failed")
         return jsonify(error="Inferensi gagal. Periksa log server."), 500

@@ -1,0 +1,94 @@
+{
+  "dataset": "OwensLab/CommunityForensics-Eval",
+  "split": "CompEval",
+  "seed": 20261118,
+  "offsets": [
+    335,
+    1723,
+    3414,
+    4897,
+    6502,
+    8484,
+    9728,
+    11454,
+    13154,
+    14739,
+    16451,
+    18178,
+    19654,
+    21417,
+    22762,
+    24409,
+    26264,
+    27538,
+    29274,
+    31055,
+    32424,
+    34206,
+    35640,
+    37363,
+    39018,
+    40678,
+    42496,
+    43785,
+    45647,
+    47241,
+    48702,
+    50415
+  ],
+  "rows_per_request": 4,
+  "selection": "Fixed distributed offsets chosen before either model is evaluated. Exclude flagged NSFW, content duplicates and exact normalized overlap with local splits.",
+  "failed_requests": [
+    {
+      "offset": 335,
+      "error": "ConnectionError"
+    },
+    {
+      "offset": 4897,
+      "error": "ConnectionError"
+    },
+    {
+      "offset": 9728,
+      "error": "ConnectionError"
+    },
+    {
+      "offset": 14739,
+      "error": "HTTPError"
+    },
+    {
+      "offset": 27538,
+      "error": "HTTPError"
+    },
+    {
+      "offset": 32424,
+      "error": "HTTPError"
+    },
+    {
+      "offset": 34206,
+      "error": "ReadTimeout"
+    },
+    {
+      "offset": 40678,
+      "error": "HTTPError"
+    },
+    {
+      "offset": 47241,
+      "error": "HTTPError"
+    },
+    {
+      "offset": 35640,
+      "error": "ChunkedEncodingError"
+    },
+    {
+      "offset": 50415,
+      "error": "HTTPError"
+    }
+  ],
+  "successful_rows": 84,
+  "excluded_after_download": 0,
+  "class_counts": {
+    "REAL": 32,
+    "FAKE": 52
+  },
+  "label_contract": "Dataset label: 0=non-AI, 1=AI. model_name groups may contain paired non-AI examples."
+}

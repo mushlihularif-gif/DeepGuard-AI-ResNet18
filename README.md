@@ -1,7 +1,10 @@
-# DeepGuard AI — ResNet18
+# DeepGuard AI — Community Forensics + baseline ResNet18
 
 Proyek **Artificial Intelligence for Security**, Teknik Informatika, Kelompok 8.
-Aplikasi Flask untuk melihat indikasi citra AI menggunakan ResNet18.
+Aplikasi Flask untuk melihat indikasi citra AI. Mesin utama sekarang **Community
+Forensics ViT-S/16**, bukan ResNet18. ResNet18 hasil latihan proyek tetap tersedia
+sebagai baseline akademik. Perubahan arsitektur ini harus disebutkan dalam laporan
+kuliah; hasil ViT tidak boleh diklaim sebagai hasil ResNet18.
 
 **Hasil adalah indikasi, bukan sertifikat keaslian.** Model bisa salah pada foto
 kamera, generator yang belum dikenal, screenshot, kompresi, ilustrasi, dan edit
@@ -19,14 +22,68 @@ cd DeepGuard-AI-ResNet18
 python -m venv .venv
 # Windows: .venv\Scripts\activate
 # Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-detector.txt
+python setup_detector.py
 python app.py
 ```
 
 Buka [Deteksi Citra](http://127.0.0.1:5000/deteksi). Dataset tidak diperlukan
-untuk menjalankan aplikasi: cukup checkpoint sekitar 45 MB yang disertakan.
+untuk menjalankan aplikasi. Setup mengunduh bobot Community Forensics sekitar
+87 MB sekali dari sumber resmi, memeriksa SHA-256, dan mendukung melanjutkan
+unduhan yang terputus. Dataset ratusan GB tidak diunduh. Bobot ini tidak masuk Git;
+clone baru perlu menjalankan setup. Model ResNet18 sekitar 45 MB tetap disertakan.
 Startup tidak mengunduh data, tidak melatih ulang, dan tidak mengubah bobot.
-Restart Flask setelah mengganti checkpoint.
+Restart Flask setelah mengganti checkpoint. Inferensi berjalan lokal, bukan API
+cloud: unggahan tidak dikirim ke Hugging Face. Cloud dapat digunakan untuk training
+terpisah; tidak ada training cloud yang dijalankan oleh aplikasi ini.
+
+Untuk baseline saja (PowerShell; cukup `requirements.txt`):
+
+```powershell
+$env:DEEPGUARD_ENGINE = 'resnet18'
+python app.py
+# Kembali ke mesin utama:
+Remove-Item Env:DEEPGUARD_ENGINE
+```
+
+`DEEPGUARD_MODEL_PATH` opsional mengganti lokasi checkpoint sesuai mesin.
+Model hilang/rusak menghasilkan HTTP 503, tanpa fallback diam-diam. Mesin utama
+memakai resize sisi pendek 440 lalu center crop 384 sesuai preprocessing penulis;
+edit di tepi gambar bisa terlewat. Skor sigmoid belum dikalibrasi pada data proyek.
+
+## Uji lintas sumber: mengapa model diganti
+
+Pada pilot **84 gambar** dari CommunityForensics-Eval / CompEval, berbeda dari
+dua dataset latihan ResNet18 lokal:
+
+| Uji biner pada ambang 0,5 | ResNet18 | Community Forensics |
+| --- | ---: | ---: |
+| Benar, gambar asli ukuran sumber | 48/84 (57,1%) | 77/84 (91,7%) |
+| Non-AI salah dianggap AI | 11/32 | 0/32 |
+| AI salah dianggap non-AI | 25/52 | 7/52 |
+| Benar setelah resize maks. 512 + JPEG kualitas 70 | 48/84 (57,1%) | 67/84 (79,8%) |
+
+**Ini pilot kecil, bukan klaim akurasi umum.** Sebanyak 11/32 permintaan data gagal;
+84/128 target gambar berhasil diterima. Sampel tidak seimbang. Overlap hash dengan
+split lokal sudah diperiksa, tetapi near-duplicate dan overlap dengan seluruh
+korpus pralatih model eksternal belum diaudit. Pilot dipakai memilih mesin, jadi
+konfirmasi selanjutnya memerlukan set uji baru yang belum dipakai memilih model.
+Tidak ada fine-tuning, pengubahan label, atau penyesuaian ambang pada pilot.
+
+Pada ambang tampilan aplikasi (REAL ≤0,2; FAKE ≥0,8), model utama memberikan
+74 keputusan benar, 4 salah, dan 6 ragu pada 84 gambar sumber. Setelah kompresi:
+61 benar, 12 salah, 11 ragu. Jangan menyamakan akurasi biner dengan keputusan UI.
+Gambar ilustrasi mesin pesawat yang dilaporkan pengguna tetap **UNCERTAIN**
+(skor sekitar 39,9%); kasus itu tidak dipakai melatih atau memilih ambang.
+Deteksi perubahan baju/wajah/latar **belum terselesaikan atau tervalidasi**.
+
+Lihat [laporan pilot](reports/CROSS_DOMAIN.md), [hasil per gambar](reports/cross_domain.json),
+[uji kompresi](reports/cross_domain_jpeg.json), dan [protokol](reports/cross_domain_plan.json).
+Halaman web hanya menampilkan metrik pilot yang cocok dengan hash checkpoint aktif.
+
+Sumber model: [Community Forensics, CVPR 2025](https://github.com/JeongsooP/Community-Forensics),
+[checkpoint resmi](https://huggingface.co/OwensLab/commfor-model-384).
+Model dan kode sumber upstream berlisensi MIT; lihat [pemberitahuan lisensi](docs/COMMUNITY_FORENSICS_LICENSE.txt).
 
 ## Perbaikan November 2026
 
@@ -44,12 +101,13 @@ Restart Flask setelah mengganti checkpoint.
 - Hasil `REAL`, `FAKE`, atau `UNCERTAIN`; klaim pemeriksaan FFT/noise sensor
   yang tidak benar-benar dilakukan telah dihapus. Tombol demo hasil palsu dihapus.
 
-## Hasil dan batas benchmark
+## Benchmark latihan ResNet18 sebelumnya
 
 Hasil lengkap ada di [reports/evaluation.json](reports/evaluation.json) dan
 [laporan audit](reports/AUDIT.md). Data: 12.000 latihan, 800 validasi, 800
-kalibrasi, 1.600 uji, dengan kelas dan sumber seimbang. Metrik pada halaman web
-dibaca dari checkpoint aktif, bukan angka yang ditulis tetap di HTML.
+kalibrasi, 1.600 uji, dengan kelas dan sumber seimbang. Angka 86,2% dari subset ini
+tidak mewakili gambar internet; pilot lintas sumber di atas menunjukkan penurunan
+ke 57,1%. Benchmark lama dipertahankan sebagai catatan penelitian.
 
 Sumber:
 [Tiny-GenImage](https://huggingface.co/datasets/TheKernel01/Tiny-GenImage) dan
@@ -57,14 +115,17 @@ Sumber:
 Hemg mencakup karya seni non-AI, bukan hanya foto kamera. Tiny validation pernah
 dipakai model lama, sehingga perbandingan model lama di subset Tiny tidak merupakan
 uji independen model lama. Hash RGB 64×64 tidak menjamin semua near-duplicate hilang.
-Belum ada benchmark independen untuk edit lokal atau generator terbaru.
+Belum ada benchmark independen untuk edit lokal.
 
 ## API
 
-- `GET /api/model-status`: status, SHA-256 model, perangkat, dan metrik checkpoint.
+- `GET /api/model-status`: mesin, arsitektur, ukuran input, jenis skor, SHA-256,
+  perangkat, dan hasil pilot yang sesuai checkpoint.
 - `POST /api/predict`: multipart field `image`, JPG/PNG, maksimum 10 MB dan
   25 megapiksel. Gambar diproses di memori, tidak disimpan oleh aplikasi.
-- `prob_fake`: softmax setelah temperature scaling pada split kalibrasi.
+- `prob_fake`: skor AI. Community Forensics: sigmoid mentah (`uncalibrated_sigmoid`);
+  ResNet18: softmax setelah temperature scaling (`temperature_scaled_softmax`).
+  Nama field dipertahankan untuk kompatibilitas, bukan jaminan probabilitas benar.
   Skor ≤0,2 menghasilkan REAL; ≥0,8 FAKE; di antaranya UNCERTAIN.
   Ambang ini merupakan aturan peninjauan konservatif, bukan jaminan tingkat error.
 - REAL berarti cenderung kelas non-AI, **tidak membuktikan gambar belum diedit AI**.
@@ -76,6 +137,10 @@ Belum ada benchmark independen untuk edit lokal atau generator terbaru.
 python -m unittest discover -s tests -v
 node tests/test_frontend.cjs
 python evaluate_uploads.py data/ground_truth.csv
+# Opsional, mengunduh hanya 84 gambar publik pilot:
+python fetch_cross_domain.py
+python evaluate_cross_domain.py work/external_eval/manifest.json --community-model models/community_forensics.safetensors
+python evaluate_cross_domain.py work/external_eval/manifest.json --community-model models/community_forensics.safetensors --jpeg-share --output work/cross_domain_jpeg.json
 ```
 
 CSV pengujian eksternal memiliki kolom `path,label,group`; label harus diketahui

@@ -72,7 +72,7 @@
                             <span>&bull;</span>
                             <span><i class="fa-solid fa-hard-drive"></i> &le; 10 MB</span>
                             <span>&bull;</span>
-                            <span><i class="fa-solid fa-vector-square"></i> 224&times;224 px</span>
+                            <span><i class="fa-solid fa-vector-square"></i> {{ model_info.input_size }}&times;{{ model_info.input_size }} px</span>
                         </div>
                     </div>
 
@@ -159,7 +159,7 @@
             <div class="card">
                 <div class="card-header-clean">
                     <h2 class="card-title"><i class="fa-solid fa-chart-column"></i> 2. Hasil Analisis Model</h2>
-                    <span class="page-badge" style="margin-bottom: 0;">DISTRIBUSI SOFTMAX</span>
+                    <span class="page-badge" style="margin-bottom: 0;">SKOR MODEL</span>
                 </div>
 
                 <!-- Kondisi Awal Sebelum Analisis -->
@@ -223,10 +223,10 @@
                         </div>
                     </div>
 
-                    <!-- Meteran Grafik Distribusi Probabilitas Softmax -->
+                    <!-- Perbandingan skor kelas model -->
                     <div class="prob-meter">
                         <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 10px;">
-                            <i class="fa-solid fa-chart-pie"></i> Komparasi Distribusi Probabilitas Softmax
+                            <i class="fa-solid fa-chart-pie"></i> Perbandingan Skor Kelas
                         </div>
 
                         <div class="prob-row">
@@ -297,7 +297,7 @@
                     <i class="fa-solid fa-circle-info"></i>
                     <div>
                         <strong>Catatan Analisis:</strong><br>
-                        Skor klasifikasi menggambarkan estimasi keyakinan statistik model konvolusi ResNet18 terhadap anomali visual.
+                        Skor berasal dari {{ model_info.architecture }}: {{ model_info.score_description }}. Angka ini bukan persentase keaslian atau luas edit AI.
                     </div>
                 </div>
             </div>
@@ -310,7 +310,7 @@
     <footer class="footer">
         <div class="footer-container">
             <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
-            <span>Didukung Model ResNet18 &bull; Privasi Terjamin &bull; 2026</span>
+            <span>Model: {{ model_info.architecture }} &bull; Privasi Terjamin &bull; 2026</span>
         </div>
     </footer>
 
@@ -437,7 +437,7 @@
             reader.onload = function(evt) {
                 if (fileVersion !== selectionVersion) return;
                 previewImage.onload = function() {
-                    metaFileDim.textContent = previewImage.naturalWidth + '×' + previewImage.naturalHeight + ' px → 224×224 px';
+                    metaFileDim.textContent = previewImage.naturalWidth + '×' + previewImage.naturalHeight + ' px → {{ model_info.input_size }}×{{ model_info.input_size }} px';
                 };
                 previewImage.src = evt.target.result;
                 previewImage.classList.remove('hidden');
@@ -487,8 +487,8 @@
             document.getElementById('spectrumMarker').style.left = (probFake * 100) + '%';
             document.getElementById('spectrumScoreText').textContent = percent(probFake);
             document.getElementById('inferTimeText').textContent = elapsedMs + ' ms';
-            document.getElementById('diagTexture').textContent = 'ResNet18 · gambar utuh';
-            document.getElementById('diagFrequency').textContent = 'Softmax terkalibrasi';
+            document.getElementById('diagTexture').textContent = (data.architecture || 'Model');
+            document.getElementById('diagFrequency').textContent = data.score_type === 'uncalibrated_sigmoid' ? 'Sigmoid belum dikalibrasi' : 'Softmax terkalibrasi';
             document.getElementById('diagNoise').textContent = 'Belum tervalidasi';
             document.getElementById('diagAction').textContent = 'Periksa sumber / foto sebelum edit';
             document.getElementById('diagDetailText').textContent = (data.warnings || []).join(' ');
@@ -502,7 +502,7 @@
             const fakePct = document.getElementById('probFakeText').textContent;
             const file = document.getElementById('metaFileName').textContent;
             const limitations = document.getElementById('diagDetailText').textContent;
-            const textToCopy = `[DeepGuard AI]\nBerkas: ${file}\nHasil: ${title}\nSkor kelas AI: ${conf}\nAI: ${fakePct} | Non-AI: ${realPct}\nModel: ResNet18\nCatatan: ${limitations}`;
+            const textToCopy = `[DeepGuard AI]\nBerkas: ${file}\nHasil: ${title}\nSkor kelas AI: ${conf}\nAI: ${fakePct} | Non-AI: ${realPct}\nModel: ${document.getElementById('diagTexture').textContent}\nCatatan: ${limitations}`;
 
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const copyBtnText = document.getElementById('copyBtnText');
@@ -532,9 +532,9 @@
 
             const stages = [
                 { pct: 25, text: '<i class="fa-solid fa-circle-notch fa-spin"></i> Memvalidasi integritas berkas citra...' },
-                { pct: 55, text: '<i class="fa-solid fa-circle-notch fa-spin"></i> Preprocessing: Normalisasi Tensor 224×224 RGB...' },
-                { pct: 85, text: '<i class="fa-solid fa-circle-notch fa-spin"></i> Eksekusi forward pass model ResNet18...' },
-                { pct: 100, text: '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghitung skor probabilitas Softmax...' }
+                { pct: 55, text: '<i class="fa-solid fa-circle-notch fa-spin"></i> Preprocessing: Normalisasi Tensor {{ model_info.input_size }}×{{ model_info.input_size }} RGB...' },
+                { pct: 85, text: '<i class="fa-solid fa-circle-notch fa-spin"></i> Menjalankan model {{ model_info.architecture }}...' },
+                { pct: 100, text: '<i class="fa-solid fa-circle-notch fa-spin"></i> Menghitung skor kelas model...' }
             ];
 
             for (const st of stages) {

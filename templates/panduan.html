@@ -74,7 +74,7 @@
                             Eksekusi Pemindaian Laser & Inferensi
                         </h3>
                         <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                            Klik <strong>"Analisis Citra"</strong>. Mesin forensik memindai struktur piksel secara bertahap dan menjalankan inferensi tensor ResNet18 secara <em>in-memory</em>.
+                            Klik <strong>"Analisis Citra"</strong>. Model {{ model_info.architecture }} menjalankan inferensi di memori pada komputer yang menjalankan server.
                         </p>
                     </div>
                 </div>
@@ -86,7 +86,7 @@
                             Dapatkan Hasil & Skor Keyakinan
                         </h3>
                         <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                            Sistem menampilkan indikasi non-AI, AI, atau belum dapat dipastikan. Skor softmax dikalibrasi pada data terpisah; waktu proses bergantung perangkat.
+                            Sistem menampilkan indikasi non-AI, AI, atau belum dapat dipastikan. {{ model_info.score_description }}; skor bukan jaminan keaslian dan waktu proses bergantung perangkat.
                         </p>
                     </div>
                 </div>
@@ -102,7 +102,7 @@
                 <ul style="font-size: 13px; color: var(--text-secondary); padding-left: 18px; display: flex; flex-direction: column; gap: 9px; line-height: 1.6;">
                     <li><strong>Format Didukung:</strong> JPEG, JPG, dan PNG. Dokumen non-gambar otomatis ditolak demi keamanan sistem.</li>
                     <li><strong>Batas Ukuran:</strong> Maksimal 10 MB per berkas foto.</li>
-                    <li><strong>Resolusi Standar:</strong> Citra di-<em>resize</em> secara otomatis menjadi tensor 224&times;224 RGB.</li>
+                    <li><strong>Resolusi Standar:</strong> Input model berukuran {{ model_info.input_size }}&times;{{ model_info.input_size }} RGB. Community Forensics memakai resize sisi pendek 440 lalu potongan tengah 384; area tepi dapat terlewat. ResNet18 memakai resize seluruh gambar 224.</li>
                     <li><strong>Kualitas Anjuran:</strong> Gunakan berkas asli jika tersedia; kompresi berulang dapat mengubah hasil.</li>
                 </ul>
             </div>
@@ -140,7 +140,7 @@
                 </div>
                 <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
                     <h4 style="font-weight: 700; color: #ffffff; margin-bottom: 3px;">Model apa yang mentenagai deteksi ini?</h4>
-                    <p style="color: var(--text-secondary); line-height: 1.6;">Sistem menggunakan arsitektur ResNet18 (Residual Network 18 lapisan) yang dilatih khusus untuk klasifikasi biner citra alami vs citra Generative AI.</p>
+                    <p style="color: var(--text-secondary); line-height: 1.6;">Sistem memakai {{ model_info.architecture }} untuk klasifikasi non-AI vs AI. Community Forensics adalah model pralatih eksternal; ResNet18 hasil latihan proyek tetap tersedia sebagai baseline. Tidak ada model yang menjamin semua gambar baru terdeteksi.</p>
                 </div>
             </div>
         </section>
@@ -151,7 +151,7 @@
     <footer class="footer">
         <div class="footer-container">
             <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
-            <span>Didukung Model ResNet18 &bull; Privasi Terjamin &bull; 2026</span>
+            <span>Model: {{ model_info.architecture }} &bull; Privasi Terjamin &bull; 2026</span>
         </div>
     </footer>
 

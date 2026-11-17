@@ -33,6 +33,11 @@ assert(!element('activeResultPanel').classList.contains('result-uncertain'));
 context.showError('<img src=x onerror=alert(1)>');
 assert.equal(element('validationAlert').textContent, '<img src=x onerror=alert(1)>');
 assert.equal(element('validationAlert').innerHTML, '');
+context.renderPredictionResult({label: 'UNCERTAIN', prob_real: 0.6, prob_fake: 0.4,
+    inference_ms: 20, architecture: 'Community Forensics ViT-S/16',
+    score_type: 'uncalibrated_sigmoid', summary: 'Uncertain', warnings: []});
+assert.equal(element('diagTexture').textContent, 'Community Forensics ViT-S/16');
+assert.equal(element('diagFrequency').textContent, 'Sigmoid belum dikalibrasi');
 
 (async () => {
     vm.runInContext('currentValidFile = {name: "old.png"}', context);

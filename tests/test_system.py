@@ -56,7 +56,7 @@ class ContractTests(unittest.TestCase):
 class ApiTests(unittest.TestCase):
     def setUp(self):
         self.client = server.app.test_client()
-        self.patches = [patch.object(server, "resnet_model", FixedModel([0.0, 0.0])),
+        self.patches = [patch.object(server, "detector_model", FixedModel([0.0, 0.0])),
                         patch.object(server, "preprocess_pipeline", preprocessing()),
                         patch.object(server, "device", torch.device("cpu")),
                         patch.object(server, "model_metadata", {"temperature": 1.0})]
@@ -71,7 +71,7 @@ class ApiTests(unittest.TestCase):
 
     def test_class_order_and_uncertain_response(self):
         for logits, expected in [([5., 0.], "REAL"), ([0., 5.], "FAKE"), ([0., 0.], "UNCERTAIN")]:
-            with patch.object(server, "resnet_model", FixedModel(logits)):
+            with patch.object(server, "detector_model", FixedModel(logits)):
                 response = self.upload()
                 self.assertEqual(response.status_code, 200)
                 data = response.get_json()
@@ -99,7 +99,7 @@ class ApiTests(unittest.TestCase):
         self.assertIn("error", response.get_json())
 
     def test_missing_model_does_not_guess(self):
-        with patch.object(server, "resnet_model", None):
+        with patch.object(server, "detector_model", None):
             self.assertEqual(self.upload().status_code, 503)
 
     def test_server_upload_storage_stays_in_memory(self):
@@ -110,15 +110,39 @@ class ApiTests(unittest.TestCase):
         request.close()
 
     def test_nonfinite_output_is_rejected(self):
-        with patch.object(server, "resnet_model", FixedModel([float("nan"), 0])):
+        with patch.object(server, "detector_model", FixedModel([float("nan"), 0])):
             self.assertEqual(self.upload().status_code, 500)
 
     def test_temperature_is_applied_without_reversing_labels(self):
-        with patch.object(server, "resnet_model", FixedModel([0., 2.])), \
+        with patch.object(server, "detector_model", FixedModel([0., 2.])), \
              patch.object(server, "model_metadata", {"temperature": 2.0}):
             result = self.upload().get_json()
             self.assertAlmostEqual(result["prob_fake"], 0.7310586, places=5)
             self.assertEqual(result["label"], "UNCERTAIN")
+
+    def test_community_score_is_sigmoid_and_identifies_actual_engine(self):
+        metadata = {"temperature": 1., "architecture": "Community Forensics ViT-S/16",
+                    "input_size": 384, "score_type": "uncalibrated_sigmoid"}
+        with patch.object(server, "detector_model", FixedModel([0., 2.])), \
+             patch.object(server, "model_metadata", metadata):
+            data = self.upload().get_json()
+            self.assertAlmostEqual(data["prob_fake"], torch.sigmoid(torch.tensor(2.)).item())
+            self.assertEqual(data["score_type"], "uncalibrated_sigmoid")
+            self.assertEqual(data["input_size"], 384)
+            self.assertEqual(data["architecture"], metadata["architecture"])
+            self.assertTrue(any("belum dikalibrasi" in warning for warning in data["warnings"]))
+
+    def test_failed_community_load_has_no_resnet_fallback_or_download(self):
+        import community_detector
+        with patch.object(server, "ENGINE", "community_forensics"), \
+             patch.object(server, "model_init_error", None), \
+             patch.object(server, "model_sha256", None), \
+             patch.object(community_detector, "load_community", side_effect=ValueError("bad checkpoint")), \
+             patch("modeling.load_checkpoint") as baseline:
+            server.init_model_on_startup()
+            self.assertFalse(server.model_status()["loaded"])
+            self.assertEqual(self.upload().status_code, 503)
+            baseline.assert_not_called()
 
     def test_oversized_request_preserves_413_status(self):
         response = self.upload(b"x" * (server.app.config["MAX_CONTENT_LENGTH"] + 1))
@@ -141,6 +165,26 @@ class ApiTests(unittest.TestCase):
 
 
 class SplitTests(unittest.TestCase):
+    def test_external_report_metrics_match_samples_and_exclude_local_splits(self):
+        from evaluate_cross_domain import summarize
+        root = Path(__file__).parents[1]
+        report = json.loads((root / "reports/cross_domain.json").read_text())
+        manifest = json.loads((root / "reports/data_manifest.json").read_text())
+        training_hashes = {r["content_sha256_64rgb"] for rows in manifest["splits"].values() for r in rows}
+        external_hashes = {r["content_sha256_64rgb"] for r in report["samples"]}
+        self.assertFalse(training_hashes & external_hashes)
+        self.assertEqual(len(external_hashes), len(report["samples"]))
+        for engine, metrics in report["overall"].items():
+            self.assertEqual(summarize(report["samples"], engine), metrics)
+
+    def test_corrupt_community_weights_are_rejected(self):
+        from community_detector import load_community
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "model.safetensors"
+            path.write_bytes(b"not a checkpoint")
+            with self.assertRaisesRegex(ValueError, "size/hash mismatch"):
+                load_community(path)
+
     def test_committed_manifest_has_no_hash_overlap_and_balanced_classes(self):
         path = Path(__file__).parents[1] / "reports/data_manifest.json"
         if not path.exists():
