@@ -10,6 +10,7 @@ from threading import Lock
 from flask import Flask, Request, jsonify, render_template, request
 from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import RequestEntityTooLarge
+from provenance import inspect_provenance
 
 class InMemoryRequest(Request):
     def _get_file_stream(self, total_content_length, content_type, filename=None, content_length=None):
@@ -151,6 +152,7 @@ def predict_image():
                 if min(image.size) < 32:
                     return jsonify(error="Gambar terlalu kecil; minimum 32 piksel per sisi."), 400
                 image.load()
+                verified_mime = "image/png" if image.format == "PNG" else "image/jpeg"
                 rgb = ImageOps.exif_transpose(image).convert("RGB")
     except RequestEntityTooLarge:
         raise
@@ -168,14 +170,26 @@ def predict_image():
                 raise ValueError("Non-finite model output")
             prob_fake = float(probabilities[1])
         label, summary = decision(prob_fake)
+        model_label = label
+        provenance = inspect_provenance(raw, verified_mime)
+        decision_basis = "visual_model"
+        if provenance["ai_disclosed"]:
+            label, decision_basis = "AI_DISCLOSED", "verified_c2pa"
+            summary = ("Penggunaan AI tercatat dalam kredensial yang tanda tangannya valid, "
+                       "cocok dengan isi berkas, dan penandatangannya dipercaya oleh daftar C2PA lokal. "
+                       "Skor visual di bawah ditampilkan terpisah; bukan dasar keputusan ini.")
         notes = ["Skor model bukan persentase area gambar yang diedit AI.",
                  "Edit lokal seperti ganti baju, wajah, atau latar belum tervalidasi; hasil REAL tidak menyingkirkannya."]
+        notes.append(provenance["summary"])
+        if provenance["status"].startswith("trusted"):
+            notes.append("Validasi C2PA memakai snapshot daftar kepercayaan lokal; tidak memeriksa pencabutan sertifikat secara online atau mengesahkan waktu pembuatan.")
         if model_metadata.get("score_type") == "uncalibrated_sigmoid":
             notes.append("Skor sigmoid belum dikalibrasi: angka tinggi bukan jaminan tingkat keakuratan.")
             notes.append("Model memakai potongan tengah gambar; edit di tepi bisa tidak teramati.")
         if min(rgb.size) < 128:
             notes.append("Resolusi rendah membatasi detail yang bisa diperiksa.")
         return jsonify(label=label, prob_real=1.0-prob_fake, prob_fake=prob_fake,
+                       model_label=model_label, decision_basis=decision_basis, provenance=provenance,
                        inference_ms=round((time.perf_counter()-started)*1000, 1),
                        summary=summary, warnings=notes, model_sha256=model_sha256,
                        architecture=model_metadata.get("architecture", "ResNet18"),

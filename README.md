@@ -12,6 +12,26 @@ sebagian gambar. Mengganti baju/wajah/latar dengan AI tetap termasuk penggunaan 
 tetapi kemampuan mendeteksi kasus tersebut **belum tervalidasi** pada model ini.
 Skor 90% bukan berarti 90% area gambar diedit.
 
+## Content Credentials: bukti asal dipisahkan dari prediksi visual
+
+Unggahan sekarang juga diperiksa dengan SDK C2PA. Jika **manifest aktif** mencatat
+`trainedAlgorithmicMedia` atau `compositeWithTrainedAlgorithmicMedia`, tanda tangan
+valid, hash cocok dengan berkas, dan sertifikat dipercaya oleh snapshot daftar
+resmi C2PA, hasil utama menjadi **Penggunaan AI tercatat** (`AI_DISCLOSED`).
+Skor visual tetap ditampilkan tanpa diubah: model dapat salah walaupun bukti asal
+mencatat AI. Pemeriksaan ini tidak melihat nama file atau menambahkan aturan EXIF.
+
+Infografik yang dilaporkan pengguna dan ilustrasi mesin pesawat sama-sama memiliki
+kredensial AI valid dari OpenAI Media Service. Keduanya kini dikenali lewat bukti
+asal tersebut, bukan lewat peningkatan kemampuan model visual. Setelah metadata
+dihilangkan, bukti ini hilang dan kelemahan model visual tetap ada. Tidak adanya
+C2PA, kredensial rusak, atau kredensial kamera **tidak membuktikan bebas AI**.
+
+Pemeriksaan tertanam berjalan di memori, tanpa mengirim unggahan atau mengambil
+manifest dari internet. Kepercayaan memakai snapshot lokal; pencabutan sertifikat
+terkini dan kepercayaan otoritas timestamp tidak diverifikasi online. Lihat
+[kebijakan dan pengujian C2PA](docs/PROVENANCE.md).
+
 ## Menjalankan
 
 Python 3.10–3.12; CPU didukung, CUDA opsional.
@@ -128,6 +148,11 @@ Belum ada benchmark independen untuk edit lokal.
   Nama field dipertahankan untuk kompatibilitas, bukan jaminan probabilitas benar.
   Skor ≤0,2 menghasilkan REAL; ≥0,8 FAKE; di antaranya UNCERTAIN.
   Ambang ini merupakan aturan peninjauan konservatif, bukan jaminan tingkat error.
+- `model_label`: keputusan model visual sebelum pemeriksaan bukti asal.
+- `decision_basis`: `visual_model` atau `verified_c2pa`. `label=AI_DISCLOSED`
+  hanya diberikan untuk deklarasi AI aktif yang lolos validasi C2PA dan trust.
+  `provenance` berisi status, ringkasan, serta nama penandatangan bila dipercaya.
+  Tidak ada pengubahan `prob_fake` menjadi 100% untuk menyesuaikan hasil C2PA.
 - REAL berarti cenderung kelas non-AI, **tidak membuktikan gambar belum diedit AI**.
 - Berkas tidak valid: HTTP 400; terlalu besar: 413; model tidak siap: 503.
 

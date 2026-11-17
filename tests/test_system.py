@@ -84,6 +84,25 @@ class ApiTests(unittest.TestCase):
                   ["IMG_1234.png", "chatgpt_fake.png", "simulasi.png", "camera.png"]]
         self.assertEqual(len(set(scores)), 1)
 
+    def test_verified_ai_provenance_overrides_verdict_without_faking_model_score(self):
+        from provenance import result
+        with patch.object(server, "detector_model", FixedModel([5., 0.])), \
+             patch.object(server, "inspect_provenance", return_value=result("trusted_ai", signer="Test signer")):
+            data = self.upload().get_json()
+            self.assertEqual(data["label"], "AI_DISCLOSED")
+            self.assertEqual(data["model_label"], "REAL")
+            self.assertLess(data["prob_fake"], 0.01)
+            self.assertEqual(data["decision_basis"], "verified_c2pa")
+
+    def test_untrusted_invalid_and_absent_credentials_never_force_ai(self):
+        from provenance import result
+        for status in ("absent", "untrusted", "invalid", "unavailable", "trusted_no_ai_disclosure"):
+            with patch.object(server, "detector_model", FixedModel([5., 0.])), \
+                 patch.object(server, "inspect_provenance", return_value=result(status)):
+                data = self.upload().get_json()
+                self.assertEqual(data["label"], "REAL", status)
+                self.assertEqual(data["decision_basis"], "visual_model")
+
     def test_invalid_uploads_are_client_errors(self):
         self.assertEqual(self.client.post("/api/predict").status_code, 400)
         self.assertEqual(self.upload(b"not an image").status_code, 400)

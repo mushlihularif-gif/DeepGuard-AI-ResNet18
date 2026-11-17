@@ -1,5 +1,10 @@
 # Pilot lintas sumber dan pergantian mesin
 
+Catatan lanjutan: angka di laporan ini mengukur model visual saja. Aplikasi kini
+juga memeriksa [kredensial C2PA](../docs/PROVENANCE.md). Ilustrasi pesawat dan
+infografik pengguna memiliki deklarasi AI valid; keputusan bukti asal kini
+`AI_DISCLOSED`, sementara skor model visual dan metrik di bawah tetap sama.
+
 Keluhan pengguna terbukti pada data pembanding: hasil ResNet18 pada subset
 latihannya sendiri terlalu optimistis untuk penggunaan di luar sumber tersebut.
 Pemetaan label sudah benar, tetapi memperbaiki bug label tidak otomatis membuat

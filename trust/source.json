@@ -1,0 +1,7 @@
+{
+  "source": "https://raw.githubusercontent.com/c2pa-org/conformance-public/64b3f9c8ebb95d2b73557aea25172d694db67c1e/trust-list/C2PA-TRUST-LIST.pem",
+  "revision": "64b3f9c8ebb95d2b73557aea25172d694db67c1e",
+  "sha256": "148c1c167e98dc909a0d5793d2feee1022aa60fef5c83a0d6b08f67f4446bc37",
+  "retrieved_date": "2026-11-17",
+  "policy": "Offline official C2PA signer trust anchors only; no live revocation or timestamp authority trust claim."
+}

@@ -38,6 +38,16 @@ context.renderPredictionResult({label: 'UNCERTAIN', prob_real: 0.6, prob_fake: 0
     score_type: 'uncalibrated_sigmoid', summary: 'Uncertain', warnings: []});
 assert.equal(element('diagTexture').textContent, 'Community Forensics ViT-S/16');
 assert.equal(element('diagFrequency').textContent, 'Sigmoid belum dikalibrasi');
+context.renderPredictionResult({label: 'AI_DISCLOSED', prob_real: 0.9999, prob_fake: 0.0001,
+    inference_ms: 20, architecture: 'Community Forensics ViT-S/16',
+    score_type: 'uncalibrated_sigmoid', summary: 'AI disclosed by credentials', warnings: [],
+    provenance: {summary: 'Trusted AI disclosure', signer: '<img src=x onerror=alert(1)>'}});
+assert.equal(element('resultMainTitle').textContent, 'Penggunaan AI tercatat');
+assert.equal(element('confidenceNumber').textContent, '0,0%');
+assert.equal(element('confidenceTag').textContent, 'SKOR VISUAL SAJA');
+assert(element('provenanceSummary').textContent.includes('<img src=x onerror=alert(1)>'));
+assert.equal(element('provenanceSummary').innerHTML, '');
+assert(element('activeResultPanel').classList.contains('result-fake'));
 
 (async () => {
     vm.runInContext('currentValidFile = {name: "old.png"}', context);

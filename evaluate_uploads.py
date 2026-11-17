@@ -36,9 +36,12 @@ def evaluate(manifest):
             elif result["label"] == "UNCERTAIN":
                 counts["uncertain"] += 1
             else:
+                predicted = "FAKE" if result["label"] == "AI_DISCLOSED" else result["label"]
                 counts["decided"] += 1
-                counts["correct" if result["label"] == expected else "wrong"] += 1
-                counts[f"expected_{expected}_predicted_{result['label']}"] += 1
+                counts["correct" if predicted == expected else "wrong"] += 1
+                counts[f"expected_{expected}_predicted_{predicted}"] += 1
+                if result.get("decision_basis") == "verified_c2pa":
+                    counts["c2pa_decisions"] += 1
     return {"model_sha256": model_status()["model_sha256"], "groups": {
         name: {**counts, "coverage": counts["decided"] / counts["total"],
                "decided_accuracy": counts["correct"] / counts["decided"] if counts["decided"] else None}
