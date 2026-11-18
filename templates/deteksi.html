@@ -258,8 +258,59 @@
                     <div class="diagnostic-checklist">
                         <div class="diagnostic-header">
                             <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--primary);"></i>
-                            <span>Cakupan dan Batas Pemeriksaan:</span>
+                            <span>Memahami hasil pemeriksaan</span>
                         </div>
+                        <section class="result-explanation result-explanation-primary">
+                            <h3>Mengapa hasilnya seperti ini?</h3>
+                            <p id="decisionExplanation">Menunggu hasil.</p>
+                            <p id="visualExplanation" class="explanation-muted"></p>
+                        </section>
+                        <section class="result-explanation">
+                            <h3>Dari mana hasil ini berasal?</h3>
+                            <p id="evidenceExplanation"></p>
+                            <p id="credentialExplanation" class="explanation-muted"></p>
+                        </section>
+                        <section class="result-explanation">
+                            <h3>Proses pemeriksaan gambar ini</h3>
+                            <ol class="explanation-steps">
+                                <li>Memeriksa berkas JPG/PNG, ukuran, dan keterbacaan gambar; menyesuaikan orientasinya.</li>
+                                <li id="preprocessExplanation"></li>
+                                <li id="scoreExplanation"></li>
+                                <li>Memeriksa kredensial C2PA pada berkas asli: tanda tangan, kecocokan dengan isi gambar, dan kepercayaan penandatangan.</li>
+                                <li id="finalDecisionExplanation"></li>
+                            </ol>
+                        </section>
+                        <section class="result-explanation">
+                            <h3>Peran setiap komponen</h3>
+                            <article class="component-explanation">
+                                <div class="component-heading"><h4>ResNet18</h4><span id="resnetRoleStatus" class="component-status"></span></div>
+                                <p>Model jaringan konvolusi 18 lapisan yang menjadi model awal dan pembanding penelitian. Model ini mempelajari pola gambar non-AI dan AI dari subset Tiny-GenImage dan Hemg. Kelas non-AI juga mencakup karya seni, bukan hanya foto kamera.</p>
+                                <p id="resnetRoleExplanation" class="explanation-muted"></p>
+                            </article>
+                            <article class="component-explanation">
+                                <div class="component-heading"><h4>Community Forensics ViT-S/16</h4><span id="vitRoleStatus" class="component-status"></span></div>
+                                <p>Model pralatih dari penelitian Community Forensics. ViT adalah Vision Transformer: gambar dibagi menjadi potongan kecil, lalu hubungan antarbagian dipelajari untuk klasifikasi. S berarti varian Small, sedangkan /16 berarti ukuran potongan 16 × 16 piksel.</p>
+                                <p>Dipilih sebagai mesin utama karena pada pilot 84 gambar lintas sumber, model ini benar pada 77 gambar, dibandingkan 48 oleh ResNet18. Pilot ini kecil dan dipakai untuk memilih model; hasilnya bukan jaminan akurasi pada semua gambar baru.</p>
+                                <p id="vitRoleExplanation" class="explanation-muted"></p>
+                            </article>
+                            <article class="component-explanation">
+                                <div class="component-heading"><h4>Pemeriksaan C2PA</h4><span id="c2paRoleStatus" class="component-status"></span></div>
+                                <p>C2PA adalah standar Content Credentials, yaitu catatan asal dan proses pembuatan gambar yang ditandatangani secara digital. Pemeriksaan ini membaca bukti yang tertanam dalam berkas, bukan menebak dari tampilan gambar. Deklarasi AI hanya dipakai jika lolos verifikasi dan penandatangannya dipercaya.</p>
+                                <p id="c2paRoleExplanation" class="explanation-muted"></p>
+                            </article>
+                        </section>
+                        <details class="explanation-details">
+                            <summary>Sumber model, data, dan dokumentasi</summary>
+                            <ul class="explanation-sources">
+                                <li>Model utama: <a href="https://huggingface.co/OwensLab/commfor-model-384" target="_blank" rel="noopener noreferrer">checkpoint resmi OwensLab</a> dan <a href="https://github.com/JeongsooP/Community-Forensics" target="_blank" rel="noopener noreferrer">penelitian Community Forensics</a>.</li>
+                                <li>Latihan ResNet18 proyek: <a href="https://huggingface.co/datasets/TheKernel01/Tiny-GenImage" target="_blank" rel="noopener noreferrer">Tiny-GenImage</a> dan <a href="https://huggingface.co/datasets/Hemg/AI-Generated-vs-Real-Images-Datasets" target="_blank" rel="noopener noreferrer">Hemg</a>.</li>
+                                <li>Hasil perbandingan: <a href="https://github.com/mushlihularif-gif/DeepGuard-AI-ResNet18/blob/main/reports/CROSS_DOMAIN.md" target="_blank" rel="noopener noreferrer">laporan pilot 84 gambar</a>. Angka tersebut mengukur model visual saja.</li>
+                                <li>Kredensial: <a href="https://opensource.contentauthenticity.org/docs/tasks/read/" target="_blank" rel="noopener noreferrer">dokumentasi verifikasi C2PA</a> dan <a href="https://github.com/mushlihularif-gif/DeepGuard-AI-ResNet18/blob/main/trust/source.json" target="_blank" rel="noopener noreferrer">sumber daftar kepercayaan lokal</a>.</li>
+                            </ul>
+                            <p>Prediksi dihitung di server aplikasi dengan bobot yang sudah tersedia. Gambar tidak dicari kecocokannya di internet dan unggahan tidak otomatis dipakai untuk melatih model.</p>
+                        </details>
+                        <details class="explanation-details">
+                            <summary>Batas pemeriksaan dan informasi teknis</summary>
                         <div class="diagnostic-grid">
                             <div class="diagnostic-item">
                                 <span class="label">Model</span>
@@ -283,6 +334,7 @@
                         <div id="diagDetailBox" style="margin-top: 12px; padding: 12px 14px; background: rgba(0, 0, 0, 0.35); border-radius: var(--radius-xs); border-left: 3px solid var(--primary); font-size: 12px; line-height: 1.6; color: var(--text-secondary);">
                             <span id="diagDetailText">Menunggu hasil analisis tensor...</span>
                         </div>
+                        </details>
                     </div>
 
                     <!-- Tombol Cepat: Salin Ringkasan & Uji Ulang -->
@@ -500,6 +552,48 @@
             document.getElementById('diagNoise').textContent = 'Belum tervalidasi';
             document.getElementById('diagAction').textContent = 'Periksa sumber / foto sebelum edit';
             document.getElementById('diagDetailText').textContent = (data.warnings || []).join(' ');
+            renderResultExplanation(data);
+        }
+
+        function renderResultExplanation(data) {
+            const put = (id, value) => { document.getElementById(id).textContent = value; };
+            const architecture = data.architecture || 'Model visual';
+            const isVit = architecture === 'Community Forensics ViT-S/16';
+            const isResnet = architecture === 'ResNet18';
+            const disclosed = data.label === 'AI_DISCLOSED';
+            const provenance = data.provenance || {};
+            const score = (data.prob_fake * 100).toFixed(3).replace('.', ',') + '%';
+            const visualLabel = data.model_label || (data.prob_fake <= 0.2 ? 'REAL' : data.prob_fake >= 0.8 ? 'FAKE' : 'UNCERTAIN');
+            const visualNames = {REAL: 'cenderung non-AI', FAKE: 'terindikasi AI', UNCERTAIN: 'belum dapat dipastikan'};
+            const reasons = {
+                REAL: `Skor AI model visual adalah ${score}, berada pada rentang ≤20%. Karena itu, hasil visualnya cenderung non-AI. Ini bukan bukti bahwa gambar berasal dari kamera atau bebas edit AI.`,
+                FAKE: `Skor AI model visual adalah ${score}, berada pada rentang ≥80%. Karena itu, model memberikan indikasi AI. Ini merupakan prediksi berdasarkan pola yang dipelajari dan masih dapat salah.`,
+                UNCERTAIN: `Skor AI model visual adalah ${score}, berada di antara 20% dan 80%. Sistem menempatkannya di area ragu sehingga belum memberikan keputusan AI atau non-AI.`,
+                AI_DISCLOSED: 'Hasil utama berasal dari kredensial C2PA yang valid dan tepercaya. Catatan pada manifest aktif menyatakan penggunaan AI, tanda tangannya valid, dan hash-nya cocok dengan isi berkas. Karena itu, hasilnya “Penggunaan AI tercatat”.'
+            };
+            put('decisionExplanation', reasons[data.label]);
+            put('visualExplanation', disclosed
+                ? `Secara terpisah, ${architecture} menghasilkan skor AI ${score} (${visualNames[visualLabel]}). ${visualLabel === 'REAL' ? 'Prediksi visual ini berbeda dengan bukti penggunaan AI pada kredensial. ' : ''}Skor tersebut tidak diubah menjadi 100% dan tidak menentukan keputusan C2PA.`
+                : 'Alasan yang tersedia adalah skor dan aturan keputusan. Sistem belum membuat peta penjelasan bagian gambar, sehingga tidak dapat menyatakan bahwa wajah, tangan, tekstur, atau objek tertentu menyebabkan hasil ini.');
+            put('evidenceExplanation', disclosed
+                ? `Bukti berasal dari catatan bertanda tangan di dalam berkas unggahan. Penandatangan: ${provenance.signer || 'tidak disebutkan'}. Penerbit: ${provenance.issuer || 'tidak disebutkan'}. Nama file tidak digunakan untuk menetapkan hasil.`
+                : `Skor berasal dari perhitungan ${architecture} terhadap piksel gambar yang diproses. Pengetahuan model berasal dari data latihan; tidak ada foto pembanding tertentu yang dicari saat unggahan diperiksa. Nama file dan EXIF kamera tidak menjadi aturan penentu kelas.`);
+            put('credentialExplanation', (provenance.summary || 'Status C2PA belum tersedia.') +
+                (disclosed ? ' Verifikasi memakai daftar kepercayaan lokal, tanpa pemeriksaan pencabutan sertifikat terbaru secara online.' : ' Tanpa deklarasi AI yang lolos verifikasi, hasil utama mengikuti model visual.'));
+            put('preprocessExplanation', isVit
+                ? 'Menyiapkan input Community Forensics: sisi pendek diubah menjadi 440 piksel, lalu diambil potongan tengah 384 × 384 piksel dan dinormalisasi. Sebagian tepi gambar dapat tidak teramati.'
+                : isResnet ? 'Menyiapkan input ResNet18: seluruh gambar diubah menjadi 224 × 224 piksel dan dinormalisasi.' : 'Menyiapkan piksel sesuai kebutuhan model aktif.');
+            put('scoreExplanation', `${architecture} menghitung skor AI ${score}. ` +
+                (data.score_type === 'uncalibrated_sigmoid' ? 'Skor sigmoid belum dikalibrasi; angka ini bukan jaminan peluang benar atau persentase area edit.' : 'Skor softmax disesuaikan melalui kalibrasi pada data terpisah; angka ini tetap bukan jaminan keaslian.'));
+            put('finalDecisionExplanation', disclosed
+                ? 'Menetapkan hasil utama dari deklarasi AI yang lolos verifikasi C2PA; skor model visual ditampilkan terpisah.'
+                : 'Menetapkan hasil dari skor visual: ≤20% non-AI, ≥80% AI, dan di antaranya ragu. C2PA yang tidak ada atau tidak dapat dipercaya tidak membuktikan gambar asli.');
+            put('resnetRoleStatus', isResnet ? 'AKTIF PADA HASIL INI' : 'PEMBANDING PENELITIAN');
+            put('resnetRoleExplanation', isResnet ? 'Pada pemeriksaan ini, ResNet18 menghasilkan skor visual yang ditampilkan.' : 'Pada pemeriksaan ini, ResNet18 tidak dijalankan untuk menghasilkan skor visual. Model ini tetap tersedia sebagai baseline proyek, bukan digabung atau dirata-ratakan dengan skor model aktif.');
+            put('vitRoleStatus', isVit ? 'AKTIF PADA HASIL INI' : 'TIDAK AKTIF');
+            put('vitRoleExplanation', isVit ? 'Pada pemeriksaan ini, Community Forensics menghasilkan skor visual yang ditampilkan. Bobotnya berasal dari peneliti model tersebut, bukan hasil pelatihan ResNet18 proyek.' : 'Pada pemeriksaan ini, skor visual tidak berasal dari Community Forensics.');
+            put('c2paRoleStatus', disclosed ? 'DASAR HASIL UTAMA' : 'PEMERIKSAAN BUKTI ASAL');
+            put('c2paRoleExplanation', (provenance.summary || 'Belum tersedia hasil pemeriksaan C2PA.') + ' Kredensial dapat hilang setelah screenshot atau pengubahan berkas. Kredensial kamera juga tidak menjadi jaminan bahwa gambar bebas AI.');
         }
 
         // Tombol Salin Ringkasan & Uji Gambar Lain
@@ -511,7 +605,9 @@
             const file = document.getElementById('metaFileName').textContent;
             const limitations = document.getElementById('diagDetailText').textContent;
             const provenance = document.getElementById('provenanceSummary').textContent;
-            const textToCopy = `[DeepGuard AI]\nBerkas: ${file}\nHasil: ${title}\nAsal: ${provenance}\nSkor AI model visual: ${conf}\nAI: ${fakePct} | Non-AI: ${realPct}\nModel: ${document.getElementById('diagTexture').textContent}\nCatatan: ${limitations}`;
+            const reason = document.getElementById('decisionExplanation').textContent;
+            const evidence = document.getElementById('evidenceExplanation').textContent;
+            const textToCopy = `[DeepGuard AI]\nBerkas: ${file}\nHasil: ${title}\nAlasan: ${reason}\nSumber hasil: ${evidence}\nAsal: ${provenance}\nSkor AI model visual: ${conf}\nAI: ${fakePct} | Non-AI: ${realPct}\nModel: ${document.getElementById('diagTexture').textContent}\nCatatan: ${limitations}`;
 
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const copyBtnText = document.getElementById('copyBtnText');

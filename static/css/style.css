@@ -1356,6 +1356,36 @@ body {
     font-size: 12px;
 }
 
+/* Evidence explanations stay readable inside the result column and on mobile. */
+.result-explanation {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    border-radius: 10px;
+    background: rgba(0,0,0,0.16);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.result-explanation-primary { border-left: 3px solid var(--primary); }
+.result-explanation h3 { font-size: 15px; color: var(--text-primary, #fff); margin: 0 0 10px; }
+.result-explanation p, .explanation-details p, .explanation-steps, .explanation-sources {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--text-secondary);
+    margin: 8px 0 0;
+}
+.result-explanation-primary > p:first-of-type { color: var(--text-primary, #fff); }
+.explanation-steps, .explanation-sources { padding-left: 20px; }
+.explanation-steps li, .explanation-sources li { margin-bottom: 10px; }
+.component-explanation + .component-explanation { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; margin-top: 16px; }
+.component-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.component-heading h4 { margin: 0; font-size: 13px; color: var(--text-primary, #fff); }
+.component-status { font-size: 10px; line-height: 1.5; color: var(--primary); border: 1px solid rgba(0,212,255,0.25); border-radius: 5px; padding: 3px 6px; }
+.explanation-details { margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; overflow-wrap: anywhere; }
+.explanation-details summary { cursor: pointer; color: var(--text-primary, #fff); font-size: 13px; line-height: 1.6; }
+.explanation-details summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.explanation-sources a { color: var(--primary); text-decoration: underline; }
+
 .diagnostic-header {
     font-weight: 700;
     color: #ffffff;
