@@ -45,13 +45,11 @@ context.renderPredictionResult({label: 'AI_DISCLOSED', prob_real: 0.9999, prob_f
 assert.equal(element('resultMainTitle').textContent, 'Penggunaan AI tercatat');
 assert.equal(element('confidenceNumber').textContent, '0,0%');
 assert.equal(element('confidenceTag').textContent, 'SKOR VISUAL SAJA');
-assert(element('provenanceSummary').textContent.includes('<img src=x onerror=alert(1)>'));
+assert.equal(element('provenanceSummary').textContent, 'Trusted AI disclosure');
 assert.equal(element('provenanceSummary').innerHTML, '');
 assert(element('activeResultPanel').classList.contains('result-fake'));
 assert(element('decisionExplanation').textContent.includes('kredensial C2PA'));
 assert(element('visualExplanation').textContent.includes('berbeda dengan bukti'));
-assert(element('evidenceExplanation').textContent.includes('<img src=x onerror=alert(1)>'));
-assert.equal(element('evidenceExplanation').innerHTML, '');
 assert.equal(element('vitRoleStatus').textContent, 'AKTIF PADA HASIL INI');
 assert.equal(element('resnetRoleStatus').textContent, 'PEMBANDING PENELITIAN');
 assert.equal(element('c2paRoleStatus').textContent, 'DASAR HASIL UTAMA');
@@ -64,7 +62,6 @@ for (const [score, label, expectedRange] of [[0.2, 'REAL', '≤20%'], [0.8, 'FAK
     assert.equal(element('vitRoleStatus').textContent, 'TIDAK AKTIF');
     assert.equal(element('c2paRoleStatus').textContent, 'PEMERIKSAAN BUKTI ASAL');
     assert(element('preprocessExplanation').textContent.includes('224 × 224'));
-    assert(!element('evidenceExplanation').textContent.includes('Penandatangan:'));
 }
 
 (async () => {

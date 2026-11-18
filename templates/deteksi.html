@@ -266,11 +266,6 @@
                             <p id="visualExplanation" class="explanation-muted"></p>
                         </section>
                         <section class="result-explanation">
-                            <h3>Dari mana hasil ini berasal?</h3>
-                            <p id="evidenceExplanation"></p>
-                            <p id="credentialExplanation" class="explanation-muted"></p>
-                        </section>
-                        <section class="result-explanation">
                             <h3>Proses pemeriksaan gambar ini</h3>
                             <ol class="explanation-steps">
                                 <li>Memeriksa berkas JPG/PNG, ukuran, dan keterbacaan gambar; menyesuaikan orientasinya.</li>
@@ -534,8 +529,7 @@
             document.getElementById('resultMainTitle').textContent = titles[label];
             document.getElementById('resultSummaryDesc').textContent = data.summary;
             const provenance = data.provenance || {};
-            document.getElementById('provenanceSummary').textContent = (provenance.summary || 'Belum diperiksa.') +
-                (provenance.signer ? ' Penandatangan: ' + provenance.signer + '.' : '');
+            document.getElementById('provenanceSummary').textContent = provenance.summary || 'Belum diperiksa.';
             document.getElementById('verdictIcon').innerHTML = '<i class="fa-solid fa-circle-info"></i>';
             const percent = value => (value * 100).toFixed(1).replace('.', ',') + '%';
             document.getElementById('confidenceNumber').textContent = percent(probFake);
@@ -575,11 +569,6 @@
             put('visualExplanation', disclosed
                 ? `Secara terpisah, ${architecture} menghasilkan skor AI ${score} (${visualNames[visualLabel]}). ${visualLabel === 'REAL' ? 'Prediksi visual ini berbeda dengan bukti penggunaan AI pada kredensial. ' : ''}Skor tersebut tidak diubah menjadi 100% dan tidak menentukan keputusan C2PA.`
                 : 'Alasan yang tersedia adalah skor dan aturan keputusan. Sistem belum membuat peta penjelasan bagian gambar, sehingga tidak dapat menyatakan bahwa wajah, tangan, tekstur, atau objek tertentu menyebabkan hasil ini.');
-            put('evidenceExplanation', disclosed
-                ? `Bukti berasal dari catatan bertanda tangan di dalam berkas unggahan. Penandatangan: ${provenance.signer || 'tidak disebutkan'}. Penerbit: ${provenance.issuer || 'tidak disebutkan'}. Nama file tidak digunakan untuk menetapkan hasil.`
-                : `Skor berasal dari perhitungan ${architecture} terhadap piksel gambar yang diproses. Pengetahuan model berasal dari data latihan; tidak ada foto pembanding tertentu yang dicari saat unggahan diperiksa. Nama file dan EXIF kamera tidak menjadi aturan penentu kelas.`);
-            put('credentialExplanation', (provenance.summary || 'Status C2PA belum tersedia.') +
-                (disclosed ? ' Verifikasi memakai daftar kepercayaan lokal, tanpa pemeriksaan pencabutan sertifikat terbaru secara online.' : ' Tanpa deklarasi AI yang lolos verifikasi, hasil utama mengikuti model visual.'));
             put('preprocessExplanation', isVit
                 ? 'Menyiapkan input Community Forensics: sisi pendek diubah menjadi 440 piksel, lalu diambil potongan tengah 384 × 384 piksel dan dinormalisasi. Sebagian tepi gambar dapat tidak teramati.'
                 : isResnet ? 'Menyiapkan input ResNet18: seluruh gambar diubah menjadi 224 × 224 piksel dan dinormalisasi.' : 'Menyiapkan piksel sesuai kebutuhan model aktif.');
@@ -606,8 +595,7 @@
             const limitations = document.getElementById('diagDetailText').textContent;
             const provenance = document.getElementById('provenanceSummary').textContent;
             const reason = document.getElementById('decisionExplanation').textContent;
-            const evidence = document.getElementById('evidenceExplanation').textContent;
-            const textToCopy = `[DeepGuard AI]\nBerkas: ${file}\nHasil: ${title}\nAlasan: ${reason}\nSumber hasil: ${evidence}\nAsal: ${provenance}\nSkor AI model visual: ${conf}\nAI: ${fakePct} | Non-AI: ${realPct}\nModel: ${document.getElementById('diagTexture').textContent}\nCatatan: ${limitations}`;
+            const textToCopy = `[DeepGuard AI]\nBerkas: ${file}\nHasil: ${title}\nAlasan: ${reason}\nAsal: ${provenance}\nSkor AI model visual: ${conf}\nAI: ${fakePct} | Non-AI: ${realPct}\nModel: ${document.getElementById('diagTexture').textContent}\nCatatan: ${limitations}`;
 
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const copyBtnText = document.getElementById('copyBtnText');
