@@ -1,11 +1,14 @@
-"""SQLite persistence layer for DeepGuard AI Admin SOC telemetry, config, and training runs."""
+"""SQLite persistence layer for DeepGuard AI Admin SOC auth, audit logs, telemetry, config, and custom algorithms."""
 import csv
 import datetime
 import io
 import json
+import os
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from threading import Lock
+from werkzeug.security import check_password_hash, generate_password_hash
 
 DEFAULT_CONFIG = {
     "default_algorithm": "ensemble",
@@ -24,10 +27,18 @@ class ForensicsStorage:
         self._lock = Lock()
         self._init_schema()
 
+    @contextmanager
     def _connect(self):
         conn = sqlite3.connect(str(self.db_path), timeout=10)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def _init_schema(self):
         with self._lock, self._connect() as conn:
@@ -37,6 +48,38 @@ class ForensicsStorage:
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL,
                     updated_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS admin_users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    role TEXT NOT NULL DEFAULT 'superadmin',
+                    created_at TEXT NOT NULL,
+                    last_login TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    username TEXT NOT NULL,
+                    ip_addr TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    detail TEXT NOT NULL,
+                    status TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS custom_algorithms (
+                    algo_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    subtitle TEXT NOT NULL,
+                    algo_type TEXT NOT NULL,
+                    source_kind TEXT NOT NULL,
+                    source_ref TEXT NOT NULL,
+                    input_size TEXT NOT NULL,
+                    ai_label_idx INTEGER,
+                    description TEXT NOT NULL,
+                    created_at TEXT NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS scan_logs (
@@ -75,13 +118,151 @@ class ForensicsStorage:
                 );
                 """
             )
-            now = datetime.datetime.now().isoformat(timespec="seconds")
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             for k, v in DEFAULT_CONFIG.items():
                 conn.execute(
                     "INSERT OR IGNORE INTO admin_config (key, value, updated_at) VALUES (?, ?, ?)",
                     (k, json.dumps(v), now),
                 )
+            # Seed default admin if none exists yet
+            count = conn.execute("SELECT COUNT(*) AS c FROM admin_users").fetchone()["c"]
+            if count == 0:
+                default_user = os.environ.get("DEEPGUARD_ADMIN_USER", "admin").strip() or "admin"
+                default_pass = os.environ.get("DEEPGUARD_ADMIN_PASS", "deepguard2026")
+                conn.execute(
+                    "INSERT INTO admin_users (username, password_hash, role, created_at) VALUES (?, ?, 'superadmin', ?)",
+                    (default_user, generate_password_hash(default_pass), now),
+                )
             conn.commit()
+
+    # ==========================================================================
+    # ADMIN AUTHENTICATION & AUDIT TRAIL
+    # ==========================================================================
+
+    def verify_admin(self, username, password):
+        uname = (username or "").strip()
+        if not uname or not password:
+            return None
+        with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT * FROM admin_users WHERE username = ?", (uname,)).fetchone()
+            if not row or not check_password_hash(row["password_hash"], password):
+                return None
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            conn.execute("UPDATE admin_users SET last_login = ? WHERE id = ?", (now, row["id"]))
+            conn.commit()
+            return {"id": row["id"], "username": row["username"], "role": row["role"], "last_login": now}
+
+    def change_admin_password(self, username, old_password, new_password):
+        if len(new_password or "") < 6:
+            return False, "Kata sandi baru minimal 6 karakter."
+        with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT * FROM admin_users WHERE username = ?", (username,)).fetchone()
+            if not row or not check_password_hash(row["password_hash"], old_password or ""):
+                return False, "Kata sandi saat ini tidak cocok."
+            conn.execute(
+                "UPDATE admin_users SET password_hash = ? WHERE id = ?",
+                (generate_password_hash(new_password), row["id"]),
+            )
+            conn.commit()
+        return True, "Kata sandi berhasil diperbarui."
+
+    def create_admin(self, username, password, role="admin"):
+        uname = (username or "").strip().lower()
+        if not uname or len(uname) < 3 or not uname.replace("_", "").replace("-", "").isalnum():
+            return False, "Username minimal 3 karakter alfanumerik."
+        if len(password or "") < 6:
+            return False, "Kata sandi minimal 6 karakter."
+        if role not in ("admin", "superadmin", "analyst"):
+            role = "admin"
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            with self._lock, self._connect() as conn:
+                conn.execute(
+                    "INSERT INTO admin_users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+                    (uname, generate_password_hash(password), role, now),
+                )
+                conn.commit()
+            return True, f"Akun administrator '{uname}' berhasil dibuat."
+        except sqlite3.IntegrityError:
+            return False, f"Username '{uname}' sudah terdaftar."
+
+    def list_admins(self):
+        with self._lock, self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, username, role, created_at, last_login FROM admin_users ORDER BY id ASC"
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def delete_admin(self, username, current_username):
+        if username == current_username:
+            return False, "Tidak dapat menghapus akun yang sedang digunakan."
+        with self._lock, self._connect() as conn:
+            cnt = conn.execute("SELECT COUNT(*) AS c FROM admin_users").fetchone()["c"]
+            if cnt <= 1:
+                return False, "Minimal satu akun administrator harus tersisa."
+            cur = conn.execute("DELETE FROM admin_users WHERE username = ?", (username,))
+            conn.commit()
+            if cur.rowcount == 0:
+                return False, "Akun tidak ditemukan."
+        return True, f"Akun '{username}' telah dihapus."
+
+    def record_admin_event(self, username, ip_addr, action, detail, status="OK"):
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                "INSERT INTO admin_audit_logs (created_at, username, ip_addr, action, detail, status) VALUES (?, ?, ?, ?, ?, ?)",
+                (now, username or "anonymous", ip_addr or "-", action, detail, status),
+            )
+            conn.commit()
+
+    def get_admin_events(self, limit=50):
+        with self._lock, self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM admin_audit_logs ORDER BY id DESC LIMIT ?", (int(limit),)
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    # ==========================================================================
+    # CUSTOM ALGORITHMS REGISTRY (HF / LOCAL .PT / LOCAL .ONNX)
+    # ==========================================================================
+
+    def save_custom_algorithm(self, *, algo_id, name, subtitle, algo_type, source_kind,
+                              source_ref, input_size, ai_label_idx=None, description=""):
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO custom_algorithms (
+                    algo_id, name, subtitle, algo_type, source_kind,
+                    source_ref, input_size, ai_label_idx, description, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(algo_id) DO UPDATE SET
+                    name=excluded.name, subtitle=excluded.subtitle, algo_type=excluded.algo_type,
+                    source_kind=excluded.source_kind, source_ref=excluded.source_ref,
+                    input_size=excluded.input_size, ai_label_idx=excluded.ai_label_idx,
+                    description=excluded.description
+                """,
+                (
+                    algo_id, name, subtitle, algo_type, source_kind,
+                    source_ref, str(input_size), ai_label_idx, description, now,
+                ),
+            )
+            conn.commit()
+
+    def list_custom_algorithms(self):
+        with self._lock, self._connect() as conn:
+            rows = conn.execute("SELECT * FROM custom_algorithms ORDER BY created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+
+    def delete_custom_algorithm(self, algo_id):
+        with self._lock, self._connect() as conn:
+            cur = conn.execute("DELETE FROM custom_algorithms WHERE algo_id = ?", (algo_id,))
+            conn.commit()
+            return cur.rowcount > 0
+
+    # ==========================================================================
+    # CONFIG, SCAN LOGS & TRAINING RUNS
+    # ==========================================================================
 
     def get_config(self):
         with self._lock, self._connect() as conn:

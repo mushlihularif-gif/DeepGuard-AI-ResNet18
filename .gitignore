@@ -40,4 +40,5 @@ models/community_forensics.safetensors
 models/smaug/
 models/detectra_openfake.onnx
 models/trained_*.pt
+models/custom_*
 models/*.partial

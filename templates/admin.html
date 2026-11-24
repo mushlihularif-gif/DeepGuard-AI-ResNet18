@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Konsol Admin &amp; Pelatihan — DeepGuard AI</title>
+    <title>Admin SOC Portal — DeepGuard AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,24 +12,19 @@
 </head>
 <body>
 
-    <header class="topbar">
+    <!-- Dedicated Isolated Admin Topbar (Separated from Public User Portal) -->
+    <header class="topbar" style="border-bottom-color: var(--border-strong);">
         <div class="topbar-inner">
-            <a href="index.html" class="brand">
+            <a href="/admin" class="brand">
                 <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI" class="brand-logo">
                 <span class="brand-name">DeepGuard AI</span>
-                <span class="brand-tag">ADMIN SOC</span>
+                <span class="brand-tag" style="color: var(--accent); border-color: var(--accent-border);">ADMIN PORTAL</span>
             </a>
-            <nav class="nav-group">
-                <a href="index.html" class="nav-link">Beranda</a>
-                <a href="deteksi.html" class="nav-link">Deteksi Citra</a>
-                <a href="panduan.html" class="nav-link">Metodologi</a>
-                <a href="tentang.html" class="nav-link">Arsitektur</a>
-                <span class="nav-divider"></span>
-                <a href="admin.html" class="nav-admin active">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-                    Konsol Admin
-                </a>
-            </nav>
+            <div class="nav-group" style="gap: 10px;">
+                <a href="/" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm">Portal User &nearr;</a>
+                <span class="chip chip-accent">{{ admin_user }} &bull; {{ admin_role|upper }}</span>
+                <button type="button" id="btnLogout" class="btn btn-danger btn-sm">Keluar</button>
+            </div>
         </div>
     </header>
 
@@ -38,10 +33,10 @@
         <!-- Admin Header & Live Hardware Telemetry -->
         <div class="page-head">
             <div>
-                <div class="page-eyebrow">SECURITY OPERATIONS CENTER &amp; MODEL MANAGEMENT</div>
-                <h1 class="page-title">Konsol Administrasi, Dataset &amp; Pelatihan Model</h1>
+                <div class="page-eyebrow">ISOLATED SECURITY OPERATIONS CENTER</div>
+                <h1 class="page-title">Manajemen Sistem, Dataset, Algoritma &amp; Pelatihan</h1>
                 <p class="page-subtitle">
-                    Pantau log pemindaian secara persisten, kurasi dataset citra, latih ulang model CNN dengan verifikasi kelas ketat, serta atur algoritma yang aktif bagi pengguna.
+                    Kelola seluruh siklus hidup deteksi AI: pemantauan log, penambahan dataset massal (.zip / multi-file), penambahan algoritma baru (HuggingFace / .pt / .onnx), pelatihan CNN, dan kontrol akses admin.
                 </p>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -51,23 +46,24 @@
             </div>
         </div>
 
-        <!-- 4 Main SOC Tabs -->
+        <!-- 5 Dedicated Admin Tabs -->
         <div class="tab-strip" role="tablist">
-            <button type="button" class="tab-btn active" data-tab="pane-monitor">1. Pemantauan &amp; Audit Log</button>
-            <button type="button" class="tab-btn" data-tab="pane-dataset">2. Manajemen Dataset</button>
-            <button type="button" class="tab-btn" data-tab="pane-training">3. Studio Pelatihan Model</button>
-            <button type="button" class="tab-btn" data-tab="pane-algorithms">4. Algoritma &amp; Checkpoint</button>
+            <button type="button" class="tab-btn active" data-tab="pane-monitor">1. Pemantauan</button>
+            <button type="button" class="tab-btn" data-tab="pane-dataset">2. Dataset</button>
+            <button type="button" class="tab-btn" data-tab="pane-training">3. Training</button>
+            <button type="button" class="tab-btn" data-tab="pane-algorithms">4. Algoritma &amp; Model</button>
+            <button type="button" class="tab-btn" data-tab="pane-security">5. Keamanan &amp; Akun</button>
         </div>
 
         <!-- =================================================================
-             TAB 1: PEMANTAUAN & AUDIT LOG (PERSISTENT SQLITE)
+             TAB 1: PEMANTAUAN & AUDIT LOG PEMINDAIAN
              ================================================================= -->
         <section id="pane-monitor" class="tab-pane active">
             <div class="grid-4" style="margin-bottom: 18px;">
                 <div class="kpi-card">
                     <div class="kpi-label"><span>Total Pemindaian</span><span class="chip">SQLITE</span></div>
                     <div class="kpi-value" id="kpiTotalScans">0</div>
-                    <div class="kpi-foot" id="kpiAlgoSummary">Seluruh mesin deteksi</div>
+                    <div class="kpi-foot">Rekaman persisten server</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label"><span>Terdeteksi Asli (Non-AI)</span><span class="chip chip-real">REAL</span></div>
@@ -82,13 +78,13 @@
                 <div class="kpi-card">
                     <div class="kpi-label"><span>Rata-Rata Latensi</span><span class="chip chip-accent">LIVE</span></div>
                     <div class="kpi-value" id="kpiAvgLatency">0 ms</div>
-                    <div class="kpi-foot">Diukur langsung pada server</div>
+                    <div class="kpi-foot">Waktu respons end-to-end</div>
                 </div>
             </div>
 
             <div class="panel">
                 <div class="panel-head" style="flex-wrap: wrap;">
-                    <h2 class="panel-title">Log Audit Pemindaian Citra</h2>
+                    <h2 class="panel-title">Log Audit Pemindaian Citra User</h2>
                     <div class="toolbar-inline">
                         <input type="text" id="logSearch" class="input" placeholder="Cari berkas / SHA-256..." style="width: 190px; padding: 6px 10px;">
                         <select id="logVerdictFilter" class="select" style="width: 170px; padding: 6px 10px;">
@@ -133,7 +129,7 @@
         </section>
 
         <!-- =================================================================
-             TAB 2: MANAJEMEN DATASET (CURATION + THUMBNAIL GALLERY + UPLOAD)
+             TAB 2: MANAJEMEN DATASET (MULTI-FILE + BULK ZIP + AUTO-SPLIT + GALERI)
              ================================================================= -->
         <section id="pane-dataset" class="tab-pane">
             <div class="grid-4" style="margin-bottom: 18px;">
@@ -143,12 +139,12 @@
                     <div class="kpi-foot" id="dsSplitBreakdown">Train: 0 &bull; Val: 0</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label"><span>Kelas Foto Asli (REAL=0)</span><span class="chip chip-real">REAL</span></div>
+                    <div class="kpi-label"><span>Foto Asli (REAL = 0)</span><span class="chip chip-real">REAL</span></div>
                     <div class="kpi-value" id="dsRealTotal" style="color: var(--real);">0</div>
                     <div class="kpi-foot" id="dsRealSub">Train: 0 &bull; Val: 0</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label"><span>Kelas Sintetis AI (FAKE=1)</span><span class="chip chip-fake">FAKE</span></div>
+                    <div class="kpi-label"><span>Sintetis AI (FAKE = 1)</span><span class="chip chip-fake">FAKE</span></div>
                     <div class="kpi-value" id="dsFakeTotal" style="color: var(--fake);">0</div>
                     <div class="kpi-foot" id="dsFakeSub">Train: 0 &bull; Val: 0</div>
                 </div>
@@ -159,51 +155,90 @@
                 </div>
             </div>
 
-            <div class="grid-2" style="grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); align-items: start;">
-                <!-- Upload Form -->
-                <div class="panel">
-                    <div class="panel-head">
-                        <h2 class="panel-title">Tambah Sampel Dataset</h2>
-                        <span class="chip">MULTI-UPLOAD</span>
-                    </div>
-                    <div class="panel-body">
-                        <div id="dsAlertErr" class="alert alert-error hidden"></div>
-                        <div id="dsAlertOk" class="alert alert-success hidden"></div>
-
-                        <div class="field">
-                            <label class="field-label">Target Split</label>
-                            <select id="dsUploadSplit" class="select">
-                                <option value="train" selected>Training Set (dataset/train)</option>
-                                <option value="val">Validation Set (dataset/val)</option>
-                            </select>
+            <div class="grid-2" style="grid-template-columns: minmax(0, 4.3fr) minmax(0, 7.7fr); align-items: start;">
+                <!-- Upload Column: Multi-Image + Bulk ZIP Import -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h2 class="panel-title">Tambah Citra (Multi-File)</h2>
+                            <span class="chip">JPG / PNG / WEBP</span>
                         </div>
+                        <div class="panel-body">
+                            <div id="dsAlertErr" class="alert alert-error hidden"></div>
+                            <div id="dsAlertOk" class="alert alert-success hidden"></div>
 
-                        <div class="field">
-                            <label class="field-label">Label Kelas (Kontrak Eksplisit)</label>
-                            <div class="seg-radio-group">
-                                <label class="seg-radio">
-                                    <input type="radio" name="dsCategory" value="real" checked>
-                                    <span class="opt-real">Foto Asli (REAL = 0)</span>
-                                </label>
-                                <label class="seg-radio">
-                                    <input type="radio" name="dsCategory" value="fake">
-                                    <span class="opt-fake">Sintetis AI (FAKE = 1)</span>
-                                </label>
+                            <div class="field">
+                                <label class="field-label">Target Split</label>
+                                <select id="dsUploadSplit" class="select">
+                                    <option value="train" selected>Training Set (dataset/train)</option>
+                                    <option value="val">Validation Set (dataset/val)</option>
+                                </select>
                             </div>
-                        </div>
 
-                        <div class="field">
-                            <label class="field-label">Pilih Satu atau Banyak Berkas (JPG / PNG)</label>
-                            <input type="file" id="dsFileInput" class="input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
-                        </div>
+                            <div class="field">
+                                <label class="field-label">Label Kelas</label>
+                                <div class="seg-radio-group">
+                                    <label class="seg-radio">
+                                        <input type="radio" name="dsCategory" value="real" checked>
+                                        <span class="opt-real">Foto Asli (REAL)</span>
+                                    </label>
+                                    <label class="seg-radio">
+                                        <input type="radio" name="dsCategory" value="fake">
+                                        <span class="opt-fake">Sintetis AI (FAKE)</span>
+                                    </label>
+                                </div>
+                            </div>
 
-                        <button type="button" id="btnUploadDataset" class="btn btn-primary" style="width: 100%;">
-                            Unggah ke Direktori Dataset
-                        </button>
+                            <div class="field">
+                                <label class="field-label">Pilih Satu atau Banyak Gambar</label>
+                                <input type="file" id="dsFileInput" class="input" accept=".jpg,.jpeg,.png,.webp,image/*" multiple>
+                            </div>
+
+                            <button type="button" id="btnUploadDataset" class="btn btn-primary" style="width: 100%;">
+                                Unggah Gambar ke Dataset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk ZIP Archive Import -->
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h2 class="panel-title">Impor Dataset Massal (.ZIP)</h2>
+                            <span class="chip chip-accent">AUTO-DETECT FOLDER</span>
+                        </div>
+                        <div class="panel-body">
+                            <div id="zipAlertErr" class="alert alert-error hidden"></div>
+                            <div id="zipAlertOk" class="alert alert-success hidden"></div>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+                                Unggah berkas <code>.zip</code> berisi hingga 300 citra. Jika di dalam ZIP terdapat folder <code>real/</code> dan <code>fake/</code>, gambar otomatis dipisahkan ke kelas masing-masing.
+                            </p>
+                            <div class="grid-2" style="gap: 8px;">
+                                <div class="field">
+                                    <label class="field-label">Split Target</label>
+                                    <select id="zipSplit" class="select">
+                                        <option value="train" selected>Train</option>
+                                        <option value="val">Val</option>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label class="field-label">Kelas Default (jika flat)</label>
+                                    <select id="zipFallbackCat" class="select">
+                                        <option value="real">REAL (Asli)</option>
+                                        <option value="fake">FAKE (AI)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <input type="file" id="zipFileInput" class="input" accept=".zip,application/zip">
+                            </div>
+                            <button type="button" id="btnUploadZip" class="btn btn-secondary" style="width: 100%;">
+                                Ekstrak &amp; Impor Arsip ZIP
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Visual Thumbnail Gallery -->
+                <!-- Visual Thumbnail Gallery + Auto-Split + Relabel -->
                 <div class="panel">
                     <div class="panel-head" style="flex-wrap: wrap;">
                         <h2 class="panel-title">Galeri Kurasi Dataset</h2>
@@ -218,6 +253,7 @@
                                 <option value="real">REAL (Asli)</option>
                                 <option value="fake">FAKE (AI)</option>
                             </select>
+                            <button type="button" id="btnAutoSplit" class="btn btn-secondary btn-sm" title="Seimbangkan otomatis 80% Train / 20% Val">Auto-Split 80/20</button>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -230,12 +266,10 @@
         </section>
 
         <!-- =================================================================
-             TAB 3: STUDIO PELATIHAN MODEL (SAFE PYTORCH TRAINING + LIVE CURVE)
+             TAB 3: STUDIO PELATIHAN MODEL (5 ARSITEKTUR CNN + LIVE CURVE)
              ================================================================= -->
         <section id="pane-training" class="tab-pane">
             <div class="grid-2" style="grid-template-columns: minmax(0, 4.5fr) minmax(0, 7.5fr); align-items: start; margin-bottom: 18px;">
-
-                <!-- Training Hyperparameter Form -->
                 <div class="panel">
                     <div class="panel-head">
                         <h2 class="panel-title">Konfigurasi Pelatihan Model</h2>
@@ -245,11 +279,13 @@
                         <div id="trainAlert" class="alert alert-error hidden"></div>
 
                         <div class="field">
-                            <label class="field-label">Arsitektur CNN Target</label>
+                            <label class="field-label">Arsitektur CNN (Hasil Otomatis Jadi Algoritma Baru)</label>
                             <select id="trainArch" class="select">
                                 <option value="resnet18">ResNet-18 (Residual CNN 18-Layer)</option>
                                 <option value="mobilenet_v3_small">MobileNetV3-Small (Ringan &amp; Cepat)</option>
                                 <option value="efficientnet_b0">EfficientNet-B0 (Compound Scaling)</option>
+                                <option value="convnext_tiny">ConvNeXt-Tiny (Modern Pure-Conv)</option>
+                                <option value="densenet121">DenseNet-121 (Dense Feature Reuse)</option>
                             </select>
                         </div>
 
@@ -263,7 +299,7 @@
 
                         <div class="grid-2" style="gap: 10px;">
                             <div class="field">
-                                <label class="field-label">Jumlah Epoch (1–30)</label>
+                                <label class="field-label">Epoch (1–30)</label>
                                 <input type="number" id="trainEpochs" class="input mono" value="5" min="1" max="30">
                             </div>
                             <div class="field">
@@ -284,11 +320,11 @@
                         <div class="field" style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px;">
                             <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer;">
                                 <input type="checkbox" id="trainAugment" checked>
-                                <span>Aktifkan augmentasi kompresi JPEG &amp; flip horizontal</span>
+                                <span>Augmentasi kompresi JPEG &amp; flip horizontal</span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer;">
                                 <input type="checkbox" id="trainFreeze">
-                                <span>Freeze backbone (latih head klasifikasi saja — lebih cepat)</span>
+                                <span>Freeze backbone (latih classifier head saja — cepat)</span>
                             </label>
                         </div>
 
@@ -297,7 +333,7 @@
                             <button type="button" id="btnStopTrain" class="btn btn-danger" disabled>Hentikan</button>
                         </div>
                         <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 10px;">
-                            Checkpoint disimpan terpisah di <code>models/trained_*.pt</code> dengan pemetaan eksplisit <code>REAL=0, FAKE=1</code> sehingga checkpoint utama tetap aman.
+                            Kontrak kelas eksplisit <code>REAL=0, FAKE=1</code>. Arsitektur baru (MobileNet / EfficientNet / ConvNeXt / DenseNet) langsung muncul di halaman deteksi user setelah selesai.
                         </p>
                     </div>
                 </div>
@@ -336,7 +372,6 @@
                             </div>
                         </div>
 
-                        <!-- Real Live SVG Accuracy / Loss Chart -->
                         <div class="chart-box">
                             <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 6px;" class="mono">
                                 <span>KURVA AKURASI PER EPOCH (0% – 100%)</span>
@@ -359,7 +394,6 @@
                 </div>
             </div>
 
-            <!-- Training Run History Table -->
             <div class="panel">
                 <div class="panel-head">
                     <h2 class="panel-title">Riwayat Sesi Pelatihan</h2>
@@ -376,7 +410,7 @@
                                 <th>Epochs</th>
                                 <th>Best Val Acc</th>
                                 <th>Status</th>
-                                <th>Checkpoint &amp; Aksi</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="trainRunsBody">
@@ -388,102 +422,268 @@
         </section>
 
         <!-- =================================================================
-             TAB 4: PENGATURAN ALGORITMA, THRESHOLD & MANAJEMEN CHECKPOINT
+             TAB 4: TAMBAH ALGORITMA BARU (HF HUB / .PT / .ONNX) & KONFIGURASI
              ================================================================= -->
         <section id="pane-algorithms" class="tab-pane">
-            <div class="grid-2" style="align-items: start;">
-                <!-- Algorithm Enable/Disable & Threshold Config -->
-                <div class="panel">
-                    <div class="panel-head">
-                        <h2 class="panel-title">Kontrol Algoritma &amp; Ambang Keputusan</h2>
-                        <span class="chip chip-accent">LIVE SYNC KE USER</span>
+            <div class="grid-2" style="align-items: start; margin-bottom: 18px;">
+
+                <!-- LEFT: TAMBAH ALGORITMA BARU (HF HUB & UPLOAD LOKAL) -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- 4A: Import HuggingFace Hub Model -->
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h2 class="panel-title">+ Tambah Algoritma dari HuggingFace Hub</h2>
+                            <span class="chip chip-accent">LIVE DOWNLOAD</span>
+                        </div>
+                        <div class="panel-body">
+                            <div id="hfAlertErr" class="alert alert-error hidden"></div>
+                            <div id="hfAlertOk" class="alert alert-info hidden"></div>
+
+                            <div class="field">
+                                <label class="field-label">Preset Cepat (Klik untuk Isi Otomatis)</label>
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-ghost btn-sm hf-preset" data-repo="haywoodsloan/ai-image-detector-deploy" data-name="SwinV2 Detector" data-type="SwinV2 Transformer">SwinV2 (haywoodsloan)</button>
+                                    <button type="button" class="btn btn-ghost btn-sm hf-preset" data-repo="Ateeqq/ai-vs-human-image-detector" data-name="SigLIP-2 AI" data-type="SigLIP Transformer">SigLIP-2 (Ateeqq)</button>
+                                    <button type="button" class="btn btn-ghost btn-sm hf-preset" data-repo="Organika/sdxl-detector" data-name="Swin-SDXL" data-type="Swin Transformer">Swin-SDXL (Organika)</button>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="field-label">HuggingFace Repo ID (image-classification)</label>
+                                <input type="text" id="hfRepoId" class="input mono" placeholder="contoh: haywoodsloan/ai-image-detector-deploy">
+                            </div>
+
+                            <div class="grid-2" style="gap: 10px;">
+                                <div class="field">
+                                    <label class="field-label">Nama Tampilan di User</label>
+                                    <input type="text" id="hfDisplayName" class="input" placeholder="contoh: SwinV2 Detector">
+                                </div>
+                                <div class="field">
+                                    <label class="field-label">Kategori Arsitektur</label>
+                                    <input type="text" id="hfAlgoType" class="input" value="Vision Transformer">
+                                </div>
+                            </div>
+
+                            <button type="button" id="btnImportHf" class="btn btn-primary" style="width: 100%;">
+                                Unduh &amp; Daftarkan Algoritma Baru
+                            </button>
+                        </div>
                     </div>
-                    <div class="panel-body">
-                        <div id="cfgAlertErr" class="alert alert-error hidden"></div>
-                        <div id="cfgAlertOk" class="alert alert-success hidden"></div>
 
-                        <div class="field">
-                            <label class="field-label">Algoritma yang Disediakan di Halaman Deteksi User</label>
-                            <div id="algoTogglesList"></div>
+                    <!-- 4B: Upload Local .PT / .ONNX Model -->
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h2 class="panel-title">+ Unggah Model Lokal (.PT / .ONNX)</h2>
+                            <span class="chip">HOT-LOAD</span>
                         </div>
+                        <div class="panel-body">
+                            <div id="upAlgoErr" class="alert alert-error hidden"></div>
+                            <div id="upAlgoOk" class="alert alert-success hidden"></div>
 
-                        <div class="grid-2" style="gap: 12px;">
-                            <div class="field">
-                                <label class="field-label">Algoritma Default User</label>
-                                <select id="cfgDefaultAlgo" class="select"></select>
+                            <div class="grid-2" style="gap: 10px;">
+                                <div class="field">
+                                    <label class="field-label">Nama Algoritma</label>
+                                    <input type="text" id="upAlgoName" class="input" placeholder="contoh: Custom CNN v2">
+                                </div>
+                                <div class="field">
+                                    <label class="field-label">Ukuran Input (px)</label>
+                                    <select id="upAlgoSize" class="select mono">
+                                        <option value="224" selected>224 × 224</option>
+                                        <option value="384">384 × 384</option>
+                                        <option value="256">256 × 256</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="field">
-                                <label class="field-label">Ambang Keputusan AI (0.10 – 0.90)</label>
-                                <input type="number" id="cfgThreshold" class="input mono" min="0.10" max="0.90" step="0.05" value="0.50">
+                                <label class="field-label">Pilih Berkas Model (.pt atau .onnx, maks. 60 MB)</label>
+                                <input type="file" id="upAlgoFile" class="input" accept=".pt,.onnx">
                             </div>
+                            <button type="button" id="btnUploadAlgo" class="btn btn-secondary" style="width: 100%;">
+                                Unggah &amp; Aktifkan Model Lokal
+                            </button>
                         </div>
-
-                        <div class="field">
-                            <label class="field-label">Metode Fusi Ensemble</label>
-                            <select id="cfgEnsembleMode" class="select">
-                                <option value="noisy_or">Bayesian Noisy-OR (Rekomendasi — Recall Maksimal, 0% FPR)</option>
-                                <option value="weighted_avg">Weighted Average (Rata-Rata Terbobot Klasik)</option>
-                            </select>
-                        </div>
-
-                        <div class="field">
-                            <label class="field-label">Bobot Reliabilitas Ensemble (0.00 – 1.00)</label>
-                            <div class="grid-3" style="gap: 8px; margin-bottom: 8px;">
-                                <div>
-                                    <span style="font-size: 11px; color: var(--text-muted);">Smaug-AI</span>
-                                    <input type="number" id="wSmaug" class="input mono" min="0" max="1" step="0.02" value="0.96">
-                                </div>
-                                <div>
-                                    <span style="font-size: 11px; color: var(--text-muted);">ViT-S/16</span>
-                                    <input type="number" id="wVit" class="input mono" min="0" max="1" step="0.02" value="0.92">
-                                </div>
-                                <div>
-                                    <span style="font-size: 11px; color: var(--text-muted);">Detectra</span>
-                                    <input type="number" id="wDetectra" class="input mono" min="0" max="1" step="0.02" value="0.65">
-                                </div>
-                            </div>
-                            <div class="grid-2" style="gap: 8px;">
-                                <div>
-                                    <span style="font-size: 11px; color: var(--text-muted);">ResNet-18</span>
-                                    <input type="number" id="wResnet" class="input mono" min="0" max="1" step="0.02" value="0.00">
-                                </div>
-                                <div>
-                                    <span style="font-size: 11px; color: var(--text-muted);">ELA + 2D-FFT</span>
-                                    <input type="number" id="wEla" class="input mono" min="0" max="1" step="0.02" value="0.00">
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="button" id="btnSaveConfig" class="btn btn-primary" style="width: 100%;">
-                            Simpan &amp; Terapkan Konfigurasi Sistem
-                        </button>
                     </div>
                 </div>
 
-                <!-- Checkpoint Registry & Hot-Swap Activation -->
+                <!-- RIGHT: KONTROL ALGORITMA AKTIF, ENSEMBLE & CHECKPOINT -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h2 class="panel-title">Algoritma Aktif &amp; Pengaturan Ensemble</h2>
+                            <span class="chip chip-accent">LIVE SYNC KE USER</span>
+                        </div>
+                        <div class="panel-body">
+                            <div id="cfgAlertErr" class="alert alert-error hidden"></div>
+                            <div id="cfgAlertOk" class="alert alert-success hidden"></div>
+
+                            <div class="field">
+                                <label class="field-label">Daftar Algoritma Terdaftar (Sakelar Kontrol User)</label>
+                                <div id="algoTogglesList"></div>
+                            </div>
+
+                            <div class="grid-2" style="gap: 10px;">
+                                <div class="field">
+                                    <label class="field-label">Algoritma Default User</label>
+                                    <select id="cfgDefaultAlgo" class="select"></select>
+                                </div>
+                                <div class="field">
+                                    <label class="field-label">Ambang Keputusan AI (0.10–0.90)</label>
+                                    <input type="number" id="cfgThreshold" class="input mono" min="0.10" max="0.90" step="0.05" value="0.50">
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="field-label">Metode Fusi Ensemble</label>
+                                <select id="cfgEnsembleMode" class="select">
+                                    <option value="noisy_or">Bayesian Noisy-OR (Rekomendasi — 98,8% Akurasi / 0% FPR)</option>
+                                    <option value="weighted_avg">Weighted Average (Rata-Rata Terbobot Klasik)</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label class="field-label">Bobot Reliabilitas Ensemble (0.00 – 1.00)</label>
+                                <div class="grid-3" style="gap: 8px; margin-bottom: 8px;">
+                                    <div>
+                                        <span style="font-size: 11px; color: var(--text-muted);">Smaug-AI</span>
+                                        <input type="number" id="wSmaug" class="input mono" min="0" max="1" step="0.02" value="0.96">
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 11px; color: var(--text-muted);">ViT-S/16</span>
+                                        <input type="number" id="wVit" class="input mono" min="0" max="1" step="0.02" value="0.92">
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 11px; color: var(--text-muted);">Detectra</span>
+                                        <input type="number" id="wDetectra" class="input mono" min="0" max="1" step="0.02" value="0.65">
+                                    </div>
+                                </div>
+                                <div class="grid-2" style="gap: 8px;">
+                                    <div>
+                                        <span style="font-size: 11px; color: var(--text-muted);">ResNet-18</span>
+                                        <input type="number" id="wResnet" class="input mono" min="0" max="1" step="0.02" value="0.00">
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 11px; color: var(--text-muted);">ELA + 2D-FFT</span>
+                                        <input type="number" id="wEla" class="input mono" min="0" max="1" step="0.02" value="0.00">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" id="btnSaveConfig" class="btn btn-primary" style="width: 100%;">
+                                Simpan &amp; Terapkan Konfigurasi Sistem
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h2 class="panel-title">Checkpoint PyTorch (.pt) di Disk</h2>
+                            <span class="chip">HOT-SWAP</span>
+                        </div>
+                        <div class="panel-body" style="padding: 0;">
+                            <div id="ckptAlert" class="alert alert-success hidden" style="margin: 14px 16px 0;"></div>
+                            <div class="table-wrap" style="border: none; border-radius: 0;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Berkas Checkpoint</th>
+                                            <th>Ukuran</th>
+                                            <th>Diubah</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="checkpointsBody">
+                                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">Memuat checkpoint...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             TAB 5: KEAMANAN, MANAJEMEN AKUN ADMIN & AUDIT TRAIL
+             ================================================================= -->
+        <section id="pane-security" class="tab-pane">
+            <div class="grid-2" style="align-items: start; margin-bottom: 18px;">
+                <!-- Change Password -->
                 <div class="panel">
                     <div class="panel-head">
-                        <h2 class="panel-title">Manajemen Berkas Checkpoint (.pt)</h2>
-                        <span class="chip">HOT-SWAP</span>
+                        <h2 class="panel-title">Ubah Kata Sandi ({{ admin_user }})</h2>
+                        <span class="chip chip-real">PBKDF2 / SCRYPT</span>
                     </div>
-                    <div class="panel-body" style="padding: 0;">
-                        <div id="ckptAlert" class="alert alert-success hidden" style="margin: 14px 16px 0;"></div>
-                        <div class="table-wrap" style="border: none; border-radius: 0;">
+                    <div class="panel-body">
+                        <div id="pwErr" class="alert alert-error hidden"></div>
+                        <div id="pwOk" class="alert alert-success hidden"></div>
+                        <div class="field">
+                            <label class="field-label">Kata Sandi Saat Ini</label>
+                            <input type="password" id="oldPassword" class="input">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Kata Sandi Baru (min. 6 karakter)</label>
+                            <input type="password" id="newPassword" class="input">
+                        </div>
+                        <button type="button" id="btnChangePw" class="btn btn-primary" style="width: 100%;">Perbarui Kata Sandi</button>
+                    </div>
+                </div>
+
+                <!-- Manage Admin Accounts -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Kelola Akun Administrator</h2>
+                        <span class="chip">RBAC</span>
+                    </div>
+                    <div class="panel-body">
+                        <div id="usrErr" class="alert alert-error hidden"></div>
+                        <div id="usrOk" class="alert alert-success hidden"></div>
+                        <div class="grid-3" style="gap: 8px; margin-bottom: 10px;">
+                            <input type="text" id="newAdminUser" class="input" placeholder="Username baru">
+                            <input type="password" id="newAdminPass" class="input" placeholder="Kata sandi">
+                            <select id="newAdminRole" class="select">
+                                <option value="admin">Admin</option>
+                                <option value="analyst">Analyst</option>
+                                <option value="superadmin">Superadmin</option>
+                            </select>
+                        </div>
+                        <button type="button" id="btnCreateAdmin" class="btn btn-secondary btn-sm" style="margin-bottom: 14px;">+ Tambah Akun Admin</button>
+                        <div class="table-wrap">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Berkas Checkpoint</th>
-                                        <th>Ukuran</th>
-                                        <th>Diubah</th>
+                                        <th>Username</th>
+                                        <th>Role</th>
+                                        <th>Login Terakhir</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody id="checkpointsBody">
-                                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">Memuat daftar checkpoint...</td></tr>
-                                </tbody>
+                                <tbody id="adminUsersBody"></tbody>
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Security Audit Trail -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2 class="panel-title">Audit Trail Aktivitas &amp; Keamanan Admin</h2>
+                    <span class="chip chip-accent">REAL-TIME LOG</span>
+                </div>
+                <div class="table-wrap" style="border: none; border-radius: 0; max-height: 360px; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Admin</th>
+                                <th>IP</th>
+                                <th>Aksi</th>
+                                <th>Detail</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminAuditBody"></tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -492,12 +692,27 @@
 
     <footer class="site-footer">
         <div class="footer-inner">
-            <span><strong>DeepGuard AI</strong> &bull; Security Operations Center &amp; Model Studio</span>
-            <span class="mono">Persistent SQLite Audit &bull; Explicit REAL=0 / FAKE=1 Contract</span>
+            <span><strong>DeepGuard AI</strong> &bull; Isolated Admin SOC Portal</span>
+            <span class="mono">Protected Session Auth &bull; Persistent SQLite Audit</span>
         </div>
     </footer>
 
     <script>
+        async function apiFetch(url, opts = {}) {
+            const res = await fetch(url, opts);
+            if (res.status === 401) {
+                window.location.href = '/admin/login';
+                throw new Error('Sesi berakhir, mengalihkan ke halaman login...');
+            }
+            return res;
+        }
+
+        // Logout
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            await fetch('/api/admin/logout', { method: 'POST' });
+            window.location.href = '/admin/login';
+        });
+
         // Tab Switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -507,11 +722,11 @@
                 document.getElementById(btn.dataset.tab).classList.add('active');
                 if (btn.dataset.tab === 'pane-dataset') loadDatasetGallery();
                 if (btn.dataset.tab === 'pane-training') { loadTrainRuns(); pollTrainStatus(); }
-                if (btn.dataset.tab === 'pane-algorithms') loadModelsConfig();
+                if (btn.dataset.tab === 'pane-algorithms') { loadModelsConfig(); pollHfStatus(); }
+                if (btn.dataset.tab === 'pane-security') { loadAdminUsers(); loadAdminAudit(); }
             });
         });
 
-        // Toggle baseMode visibility when switching architecture
         document.getElementById('trainArch').addEventListener('change', (e) => {
             document.getElementById('baseModeWrap').style.display = e.target.value === 'resnet18' ? 'block' : 'none';
         });
@@ -519,7 +734,7 @@
         // 1. Monitoring & Audit Logs
         async function loadStats() {
             try {
-                const res = await fetch('/api/admin/stats');
+                const res = await apiFetch('/api/admin/stats');
                 const data = await res.json();
                 const s = data.scan_stats || {};
                 const total = s.total_scans || 0;
@@ -542,12 +757,8 @@
                     vEl.textContent = 'VRAM: ' + data.vram;
                     vEl.style.display = 'inline-flex';
                 }
-
-                // Update dataset KPIs
                 if (data.dataset) updateDatasetKpis(data.dataset);
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function loadAuditLogs() {
@@ -558,34 +769,32 @@
                 limit: 60
             });
             try {
-                const res = await fetch('/api/admin/logs?' + q.toString());
+                const res = await apiFetch('/api/admin/logs?' + q.toString());
                 const data = await res.json();
                 const tbody = document.getElementById('auditLogBody');
                 tbody.innerHTML = '';
                 const rows = data.logs || [];
                 if (!rows.length) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 28px;">Belum ada rekaman pemindaian yang cocok dengan filter.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 28px;">Belum ada rekaman pemindaian.</td></tr>';
                     return;
                 }
                 rows.forEach(r => {
                     const tr = document.createElement('tr');
                     const isReal = r.verdict === 'REAL';
-                    const cells = [
+                    [
                         { text: r.created_at, cls: 'mono', style: 'font-size:11px;color:var(--text-secondary);white-space:nowrap;' },
                         { text: r.filename, style: 'font-weight:600;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' },
                         { text: (r.file_sha256 || '').slice(0, 10), cls: 'mono', style: 'font-size:11px;color:var(--text-muted);' },
                         { text: r.dimensions, cls: 'mono', style: 'font-size:11px;color:var(--text-secondary);' },
                         { text: r.algorithm_name || r.algorithm, cls: 'mono', style: 'font-size:11px;' },
                         { text: (r.prob_real * 100).toFixed(1) + '% / ' + (r.prob_fake * 100).toFixed(1) + '%', cls: 'mono', style: 'font-size:11.5px;' }
-                    ];
-                    cells.forEach(c => {
+                    ].forEach(c => {
                         const td = document.createElement('td');
                         if (c.cls) td.className = c.cls;
                         if (c.style) td.style.cssText = c.style;
                         td.textContent = c.text;
                         tr.appendChild(td);
                     });
-
                     const tdV = document.createElement('td');
                     const chip = document.createElement('span');
                     chip.className = 'chip ' + (isReal ? 'chip-real' : 'chip-fake');
@@ -598,7 +807,6 @@
                     tdMs.style.fontSize = '11.5px';
                     tdMs.textContent = r.latency_ms + ' ms';
                     tr.appendChild(tdMs);
-
                     tbody.appendChild(tr);
                 });
             } catch (e) { console.error(e); }
@@ -607,13 +815,13 @@
         ['logVerdictFilter', 'logAlgoFilter'].forEach(id => document.getElementById(id).addEventListener('change', loadAuditLogs));
         document.getElementById('logSearch').addEventListener('input', loadAuditLogs);
         document.getElementById('btnClearLogs').addEventListener('click', async () => {
-            if (!confirm('Hapus seluruh riwayat log audit pemindaian?')) return;
-            await fetch('/api/admin/logs', { method: 'DELETE' });
+            if (!confirm('Hapus seluruh riwayat log pemindaian?')) return;
+            await apiFetch('/api/admin/logs', { method: 'DELETE' });
             loadStats();
             loadAuditLogs();
         });
 
-        // 2. Dataset Curation & Visual Gallery
+        // 2. Dataset Curation, Multi-Upload, ZIP Import & Auto-Split
         function updateDatasetKpis(ds) {
             document.getElementById('dsTotal').textContent = ds.total_images;
             document.getElementById('dsSplitBreakdown').textContent = 'Train: ' + (ds.train_real + ds.train_fake) + ' · Val: ' + (ds.val_real + ds.val_fake);
@@ -633,7 +841,7 @@
             const sp = document.getElementById('dsFilterSplit').value;
             const cat = document.getElementById('dsFilterCat').value;
             try {
-                const res = await fetch('/api/admin/dataset/list?split=' + sp + '&category=' + cat);
+                const res = await apiFetch('/api/admin/dataset/list?split=' + sp + '&category=' + cat);
                 const data = await res.json();
                 if (data.counts) updateDatasetKpis(data.counts);
                 const grid = document.getElementById('datasetGallery');
@@ -660,6 +868,23 @@
                     badge.className = 'ds-thumb-badge ' + it.category;
                     badge.textContent = it.category === 'real' ? 'REAL' : 'AI';
 
+                    const swapBtn = document.createElement('button');
+                    swapBtn.type = 'button';
+                    swapBtn.className = 'ds-delete-btn';
+                    swapBtn.style.right = '32px';
+                    swapBtn.style.color = '#bae6fd';
+                    swapBtn.title = 'Pindah ke kelas ' + (it.category === 'real' ? 'FAKE (AI)' : 'REAL (Asli)');
+                    swapBtn.textContent = '⇄';
+                    swapBtn.addEventListener('click', async () => {
+                        const targetCat = it.category === 'real' ? 'fake' : 'real';
+                        const r = await apiFetch('/api/admin/dataset/move', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ split: it.split, category: it.category, target_split: it.split, target_category: targetCat, filename: it.name })
+                        });
+                        if (r.ok) loadDatasetGallery();
+                    });
+
                     const del = document.createElement('button');
                     del.type = 'button';
                     del.className = 'ds-delete-btn';
@@ -667,7 +892,7 @@
                     del.textContent = '×';
                     del.addEventListener('click', async () => {
                         if (!confirm('Hapus ' + it.name + ' dari dataset/' + it.split + '/' + it.category + '?')) return;
-                        const r = await fetch('/api/admin/dataset/item', {
+                        const r = await apiFetch('/api/admin/dataset/item', {
                             method: 'DELETE',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ split: it.split, category: it.category, filename: it.name })
@@ -675,7 +900,7 @@
                         if (r.ok) loadDatasetGallery();
                     });
 
-                    tw.append(img, badge, del);
+                    tw.append(img, badge, swapBtn, del);
 
                     const meta = document.createElement('div');
                     meta.className = 'ds-meta';
@@ -697,6 +922,17 @@
         document.getElementById('dsFilterSplit').addEventListener('change', loadDatasetGallery);
         document.getElementById('dsFilterCat').addEventListener('change', loadDatasetGallery);
 
+        document.getElementById('btnAutoSplit').addEventListener('click', async () => {
+            const r = await apiFetch('/api/admin/dataset/autosplit', { method: 'POST' });
+            const d = await r.json();
+            if (r.ok) {
+                const okEl = document.getElementById('dsAlertOk');
+                okEl.textContent = d.message;
+                okEl.classList.remove('hidden');
+                loadDatasetGallery();
+            }
+        });
+
         document.getElementById('btnUploadDataset').addEventListener('click', async () => {
             const input = document.getElementById('dsFileInput');
             const errEl = document.getElementById('dsAlertErr');
@@ -705,7 +941,7 @@
             okEl.classList.add('hidden');
 
             if (!input.files || !input.files.length) {
-                errEl.textContent = 'Pilih minimal satu berkas JPG/PNG terlebih dahulu.';
+                errEl.textContent = 'Pilih minimal satu berkas gambar terlebih dahulu.';
                 errEl.classList.remove('hidden');
                 return;
             }
@@ -718,7 +954,7 @@
             btn.disabled = true;
             btn.textContent = 'Mengunggah...';
             try {
-                const res = await fetch('/api/admin/dataset/upload', { method: 'POST', body: fd });
+                const res = await apiFetch('/api/admin/dataset/upload', { method: 'POST', body: fd });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Gagal mengunggah');
                 okEl.textContent = data.message;
@@ -730,44 +966,65 @@
                 errEl.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Unggah ke Direktori Dataset';
+                btn.textContent = 'Unggah Gambar ke Dataset';
             }
         });
 
-        // 3. Safe PyTorch Training Studio
-        let trainPoller = null;
+        document.getElementById('btnUploadZip').addEventListener('click', async () => {
+            const input = document.getElementById('zipFileInput');
+            const errEl = document.getElementById('zipAlertErr');
+            const okEl = document.getElementById('zipAlertOk');
+            errEl.classList.add('hidden');
+            okEl.classList.add('hidden');
+            if (!input.files || !input.files[0]) {
+                errEl.textContent = 'Pilih berkas arsip .zip terlebih dahulu.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            const fd = new FormData();
+            fd.append('archive', input.files[0]);
+            fd.append('split', document.getElementById('zipSplit').value);
+            fd.append('category', document.getElementById('zipFallbackCat').value);
+            const btn = document.getElementById('btnUploadZip');
+            btn.disabled = true;
+            btn.textContent = 'Mengekstrak & memvalidasi ZIP...';
+            try {
+                const res = await apiFetch('/api/admin/dataset/upload-zip', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Impor ZIP gagal');
+                okEl.textContent = data.message;
+                okEl.classList.remove('hidden');
+                input.value = '';
+                loadDatasetGallery();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Ekstrak & Impor Arsip ZIP';
+            }
+        });
 
+        // 3. Training Studio
+        let trainPoller = null;
         function renderTrainChart(history) {
             const trLine = document.getElementById('lineTrainAcc');
             const vaLine = document.getElementById('lineValAcc');
-            if (!history || !history.length) {
-                trLine.setAttribute('points', '');
-                vaLine.setAttribute('points', '');
-                return;
-            }
+            if (!history || !history.length) { trLine.setAttribute('points', ''); vaLine.setAttribute('points', ''); return; }
             const n = history.length;
             const xStep = n > 1 ? 450 / (n - 1) : 0;
-            const mapPt = (idx, acc) => {
-                const x = (35 + idx * xStep).toFixed(1);
-                const y = (110 - (Math.max(0, Math.min(100, acc)) / 100) * 100).toFixed(1);
-                return x + ',' + y;
-            };
+            const mapPt = (idx, acc) => (35 + idx * xStep).toFixed(1) + ',' + (110 - (Math.max(0, Math.min(100, acc)) / 100) * 100).toFixed(1);
             trLine.setAttribute('points', history.map((h, i) => mapPt(i, h.train_acc)).join(' '));
             vaLine.setAttribute('points', history.map((h, i) => mapPt(i, h.val_acc)).join(' '));
         }
 
         async function pollTrainStatus() {
             try {
-                const res = await fetch('/api/admin/train/status');
+                const res = await apiFetch('/api/admin/train/status');
                 const st = await res.json();
                 const chip = document.getElementById('trainStatusChip');
                 chip.textContent = st.status;
-                chip.className = 'chip ' + (
-                    st.status === 'TRAINING' ? 'chip-accent' :
-                    st.status === 'COMPLETED' ? 'chip-real' :
-                    st.status === 'ERROR' || st.status === 'CANCELLED' ? 'chip-fake' : ''
-                );
-
+                chip.className = 'chip ' + (st.status === 'TRAINING' ? 'chip-accent' : st.status === 'COMPLETED' ? 'chip-real' : (st.status === 'ERROR' || st.status === 'CANCELLED') ? 'chip-fake' : '');
                 document.getElementById('trainMsg').textContent = st.message || '';
                 document.getElementById('trainPct').textContent = (st.progress || 0) + '%';
                 document.getElementById('trainProgressFill').style.width = (st.progress || 0) + '%';
@@ -775,67 +1032,47 @@
                 document.getElementById('trLossVal').textContent = Number(st.train_loss || 0).toFixed(4);
                 document.getElementById('trAccVal').textContent = Number(st.train_acc || 0).toFixed(1) + '%';
                 document.getElementById('trValAccVal').textContent = Number(st.val_acc || 0).toFixed(1) + '% (' + Number(st.best_val_acc || 0).toFixed(1) + '%)';
-
                 renderTrainChart(st.history || []);
-
                 const term = document.getElementById('trainTerminal');
                 if (st.logs && st.logs.length) {
                     term.innerHTML = '';
-                    st.logs.forEach(line => {
-                        const d = document.createElement('div');
-                        d.textContent = line;
-                        term.appendChild(d);
-                    });
+                    st.logs.forEach(line => { const d = document.createElement('div'); d.textContent = line; term.appendChild(d); });
                     term.scrollTop = term.scrollHeight;
                 }
-
                 const running = st.status === 'TRAINING';
                 document.getElementById('btnStartTrain').disabled = running;
                 document.getElementById('btnStopTrain').disabled = !running;
-
-                if (!running && trainPoller) {
-                    clearInterval(trainPoller);
-                    trainPoller = null;
-                    loadTrainRuns();
-                    loadModelsConfig();
-                }
+                if (!running && trainPoller) { clearInterval(trainPoller); trainPoller = null; loadTrainRuns(); loadModelsConfig(); }
             } catch (e) { console.error(e); }
         }
 
         document.getElementById('btnStartTrain').addEventListener('click', async () => {
             const alertEl = document.getElementById('trainAlert');
             alertEl.classList.add('hidden');
-            const body = {
-                architecture: document.getElementById('trainArch').value,
-                base_mode: document.getElementById('trainBaseMode').value,
-                epochs: Number(document.getElementById('trainEpochs').value),
-                batch_size: Number(document.getElementById('trainBatchSize').value),
-                lr: Number(document.getElementById('trainLr').value),
-                use_augment: document.getElementById('trainAugment').checked,
-                freeze_backbone: document.getElementById('trainFreeze').checked
-            };
-            const res = await fetch('/api/admin/train/start', {
+            const res = await apiFetch('/api/admin/train/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                body: JSON.stringify({
+                    architecture: document.getElementById('trainArch').value,
+                    base_mode: document.getElementById('trainBaseMode').value,
+                    epochs: Number(document.getElementById('trainEpochs').value),
+                    batch_size: Number(document.getElementById('trainBatchSize').value),
+                    lr: Number(document.getElementById('trainLr').value),
+                    use_augment: document.getElementById('trainAugment').checked,
+                    freeze_backbone: document.getElementById('trainFreeze').checked
+                })
             });
             const data = await res.json();
-            if (!res.ok) {
-                alertEl.textContent = data.error || 'Gagal memulai pelatihan.';
-                alertEl.classList.remove('hidden');
-                return;
-            }
+            if (!res.ok) { alertEl.textContent = data.error || 'Gagal memulai pelatihan.'; alertEl.classList.remove('hidden'); return; }
             pollTrainStatus();
             if (trainPoller) clearInterval(trainPoller);
             trainPoller = setInterval(pollTrainStatus, 1200);
         });
 
-        document.getElementById('btnStopTrain').addEventListener('click', async () => {
-            await fetch('/api/admin/train/stop', { method: 'POST' });
-        });
+        document.getElementById('btnStopTrain').addEventListener('click', () => apiFetch('/api/admin/train/stop', { method: 'POST' }));
 
         async function loadTrainRuns() {
-            const res = await fetch('/api/admin/train/runs');
+            const res = await apiFetch('/api/admin/train/runs');
             const data = await res.json();
             const tbody = document.getElementById('trainRunsBody');
             tbody.innerHTML = '';
@@ -846,49 +1083,124 @@
             }
             runs.forEach(r => {
                 const tr = document.createElement('tr');
-                const addTd = (txt, cls) => {
-                    const td = document.createElement('td');
-                    if (cls) td.className = cls;
-                    td.textContent = txt;
-                    tr.appendChild(td);
-                };
-                addTd('#' + r.id, 'mono');
-                addTd(r.started_at, 'mono');
-                addTd(r.architecture, 'mono');
-                addTd(r.train_samples + ' / ' + r.val_samples, 'mono');
-                addTd(String(r.epochs), 'mono');
-                addTd(r.best_val_acc != null ? Number(r.best_val_acc).toFixed(1) + '%' : '—', 'mono');
-
+                ['#' + r.id, r.started_at, r.architecture, r.train_samples + ' / ' + r.val_samples, String(r.epochs), r.best_val_acc != null ? Number(r.best_val_acc).toFixed(1) + '%' : '—'].forEach(txt => {
+                    const td = document.createElement('td'); td.className = 'mono'; td.textContent = txt; tr.appendChild(td);
+                });
                 const tdSt = document.createElement('td');
                 const chip = document.createElement('span');
                 chip.className = 'chip ' + (r.status === 'COMPLETED' ? 'chip-real' : r.status === 'TRAINING' ? 'chip-accent' : 'chip-fake');
                 chip.textContent = r.status;
                 tdSt.appendChild(chip);
                 tr.appendChild(tdSt);
-
                 const tdAct = document.createElement('td');
                 if (r.checkpoint_path && r.status === 'COMPLETED') {
                     const b = document.createElement('button');
-                    b.type = 'button';
-                    b.className = 'btn btn-secondary btn-sm';
-                    b.textContent = 'Aktifkan Checkpoint';
+                    b.type = 'button'; b.className = 'btn btn-secondary btn-sm'; b.textContent = 'Aktifkan';
                     b.addEventListener('click', () => activateCheckpoint(r.checkpoint_path));
                     tdAct.appendChild(b);
-                } else {
-                    tdAct.textContent = '—';
-                }
+                } else { tdAct.textContent = '—'; }
                 tr.appendChild(tdAct);
                 tbody.appendChild(tr);
             });
         }
 
-        // 4. Algorithm & Checkpoint Configuration
+        // 4. Dynamic Add Algorithm (HF Hub + Local .pt/.onnx) & Config
+        let hfPoller = null;
+        document.querySelectorAll('.hf-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('hfRepoId').value = btn.dataset.repo;
+                document.getElementById('hfDisplayName').value = btn.dataset.name;
+                document.getElementById('hfAlgoType').value = btn.dataset.type;
+            });
+        });
+
+        async function pollHfStatus() {
+            const res = await apiFetch('/api/admin/algorithms/import-status');
+            const st = await res.json();
+            const okEl = document.getElementById('hfAlertOk');
+            const errEl = document.getElementById('hfAlertErr');
+            const btn = document.getElementById('btnImportHf');
+            if (st.status === 'IMPORTING') {
+                errEl.classList.add('hidden');
+                okEl.textContent = st.message;
+                okEl.className = 'alert alert-info';
+                btn.disabled = true;
+                btn.textContent = 'Mengunduh & Memuat...';
+            } else if (st.status === 'COMPLETED') {
+                errEl.classList.add('hidden');
+                okEl.textContent = st.message;
+                okEl.className = 'alert alert-success';
+                btn.disabled = false;
+                btn.textContent = 'Unduh & Daftarkan Algoritma Baru';
+                if (hfPoller) { clearInterval(hfPoller); hfPoller = null; loadModelsConfig(); }
+            } else if (st.status === 'ERROR') {
+                okEl.classList.add('hidden');
+                errEl.textContent = st.message;
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Unduh & Daftarkan Algoritma Baru';
+                if (hfPoller) { clearInterval(hfPoller); hfPoller = null; }
+            }
+        }
+
+        document.getElementById('btnImportHf').addEventListener('click', async () => {
+            const errEl = document.getElementById('hfAlertErr');
+            const okEl = document.getElementById('hfAlertOk');
+            errEl.classList.add('hidden');
+            okEl.classList.add('hidden');
+            const repoId = document.getElementById('hfRepoId').value.trim();
+            if (!repoId) { errEl.textContent = 'Masukkan HuggingFace Repo ID terlebih dahulu.'; errEl.classList.remove('hidden'); return; }
+            const res = await apiFetch('/api/admin/algorithms/import-hf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    repo_id: repoId,
+                    name: document.getElementById('hfDisplayName').value.trim(),
+                    algo_type: document.getElementById('hfAlgoType').value.trim()
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { errEl.textContent = data.error || 'Impor gagal.'; errEl.classList.remove('hidden'); return; }
+            pollHfStatus();
+            if (hfPoller) clearInterval(hfPoller);
+            hfPoller = setInterval(pollHfStatus, 1500);
+        });
+
+        document.getElementById('btnUploadAlgo').addEventListener('click', async () => {
+            const errEl = document.getElementById('upAlgoErr');
+            const okEl = document.getElementById('upAlgoOk');
+            const fileIn = document.getElementById('upAlgoFile');
+            errEl.classList.add('hidden');
+            okEl.classList.add('hidden');
+            if (!fileIn.files || !fileIn.files[0]) { errEl.textContent = 'Pilih berkas .pt atau .onnx terlebih dahulu.'; errEl.classList.remove('hidden'); return; }
+            const fd = new FormData();
+            fd.append('model_file', fileIn.files[0]);
+            fd.append('name', document.getElementById('upAlgoName').value.trim());
+            fd.append('input_size', document.getElementById('upAlgoSize').value);
+            const btn = document.getElementById('btnUploadAlgo');
+            btn.disabled = true; btn.textContent = 'Memvalidasi & Memuat Model...';
+            try {
+                const res = await apiFetch('/api/admin/algorithms/upload', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Gagal mengunggah model.');
+                okEl.textContent = data.message;
+                okEl.classList.remove('hidden');
+                fileIn.value = '';
+                document.getElementById('upAlgoName').value = '';
+                loadModelsConfig();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Unggah & Aktifkan Model Lokal';
+            }
+        });
+
         async function loadModelsConfig() {
-            const res = await fetch('/api/admin/models');
+            const res = await apiFetch('/api/admin/models');
             const data = await res.json();
             const cfg = data.config || {};
             const algos = data.algorithms || [];
-
             const togglesList = document.getElementById('algoTogglesList');
             const defSelect = document.getElementById('cfgDefaultAlgo');
             togglesList.innerHTML = '';
@@ -900,32 +1212,41 @@
 
                 const left = document.createElement('div');
                 const title = document.createElement('div');
-                title.style.fontWeight = '600';
-                title.style.fontSize = '13px';
+                title.style.fontWeight = '600'; title.style.fontSize = '13px';
                 title.textContent = a.name + ' (' + a.type + ')';
                 const sub = document.createElement('div');
-                sub.style.fontSize = '11.5px';
-                sub.style.color = 'var(--text-secondary)';
+                sub.style.fontSize = '11.5px'; sub.style.color = 'var(--text-secondary)';
                 sub.textContent = a.subtitle + ' · ' + a.checkpoint_path;
                 left.append(title, sub);
+
+                const right = document.createElement('div');
+                right.style.display = 'flex'; right.style.alignItems = 'center'; right.style.gap = '8px';
+
+                if (!a.is_builtin) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button'; delBtn.className = 'btn btn-danger btn-sm';
+                    delBtn.textContent = 'Hapus';
+                    delBtn.addEventListener('click', async () => {
+                        if (!confirm('Hapus algoritma kustom "' + a.name + '"?')) return;
+                        const r = await apiFetch('/api/admin/algorithms/' + encodeURIComponent(a.id), { method: 'DELETE' });
+                        if (r.ok) loadModelsConfig();
+                    });
+                    right.appendChild(delBtn);
+                }
 
                 const sw = document.createElement('label');
                 sw.className = 'switch';
                 const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.className = 'algo-enable-cb';
-                cb.value = a.id;
-                cb.checked = a.enabled;
-                const sl = document.createElement('span');
-                sl.className = 'switch-slider';
+                cb.type = 'checkbox'; cb.className = 'algo-enable-cb'; cb.value = a.id; cb.checked = a.enabled;
+                const sl = document.createElement('span'); sl.className = 'switch-slider';
                 sw.append(cb, sl);
+                right.appendChild(sw);
 
-                row.append(left, sw);
+                row.append(left, right);
                 togglesList.appendChild(row);
 
                 const opt = document.createElement('option');
-                opt.value = a.id;
-                opt.textContent = a.name + ' — ' + a.subtitle;
+                opt.value = a.id; opt.textContent = a.name + ' — ' + a.subtitle;
                 if (a.id === cfg.default_algorithm) opt.selected = true;
                 defSelect.appendChild(opt);
             });
@@ -943,40 +1264,16 @@
             ckptBody.innerHTML = '';
             (data.checkpoints || []).forEach(c => {
                 const tr = document.createElement('tr');
-                const tdN = document.createElement('td');
-                tdN.className = 'mono';
-                tdN.style.fontSize = '11.5px';
-                tdN.textContent = c.name;
-                if (c.is_active) {
-                    const tag = document.createElement('span');
-                    tag.className = 'chip chip-real';
-                    tag.style.marginLeft = '8px';
-                    tag.textContent = 'AKTIF';
-                    tdN.appendChild(tag);
-                }
-
-                const tdS = document.createElement('td');
-                tdS.className = 'mono';
-                tdS.textContent = c.size_mb + ' MB';
-
-                const tdM = document.createElement('td');
-                tdM.className = 'mono';
-                tdM.style.color = 'var(--text-secondary)';
-                tdM.style.fontSize = '11px';
-                tdM.textContent = c.modified;
-
+                const tdN = document.createElement('td'); tdN.className = 'mono'; tdN.style.fontSize = '11.5px'; tdN.textContent = c.name;
+                if (c.is_active) { const tag = document.createElement('span'); tag.className = 'chip chip-real'; tag.style.marginLeft = '8px'; tag.textContent = 'AKTIF'; tdN.appendChild(tag); }
+                const tdS = document.createElement('td'); tdS.className = 'mono'; tdS.textContent = c.size_mb + ' MB';
+                const tdM = document.createElement('td'); tdM.className = 'mono'; tdM.style.color = 'var(--text-secondary)'; tdM.style.fontSize = '11px'; tdM.textContent = c.modified;
                 const tdA = document.createElement('td');
                 if (!c.is_active) {
-                    const b = document.createElement('button');
-                    b.type = 'button';
-                    b.className = 'btn btn-secondary btn-sm';
-                    b.textContent = 'Aktifkan';
+                    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-secondary btn-sm'; b.textContent = 'Aktifkan';
                     b.addEventListener('click', () => activateCheckpoint(c.path));
                     tdA.appendChild(b);
-                } else {
-                    tdA.innerHTML = '<span style="color:var(--real);font-size:12px;">Digunakan</span>';
-                }
-
+                } else { tdA.innerHTML = '<span style="color:var(--real);font-size:12px;">Digunakan</span>'; }
                 tr.append(tdN, tdS, tdM, tdA);
                 ckptBody.appendChild(tr);
             });
@@ -985,16 +1282,13 @@
         async function activateCheckpoint(path) {
             const alertBox = document.getElementById('ckptAlert');
             alertBox.classList.add('hidden');
-            const res = await fetch('/api/admin/models/activate', {
+            const res = await apiFetch('/api/admin/models/activate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ checkpoint_path: path })
             });
             const data = await res.json();
-            if (!res.ok) {
-                alert(data.error || 'Gagal mengaktifkan checkpoint.');
-                return;
-            }
+            if (!res.ok) { alert(data.error || 'Gagal mengaktifkan checkpoint.'); return; }
             alertBox.textContent = data.message;
             alertBox.classList.remove('hidden');
             loadModelsConfig();
@@ -1003,44 +1297,129 @@
         document.getElementById('btnSaveConfig').addEventListener('click', async () => {
             const errEl = document.getElementById('cfgAlertErr');
             const okEl = document.getElementById('cfgAlertOk');
-            errEl.classList.add('hidden');
-            okEl.classList.add('hidden');
-
+            errEl.classList.add('hidden'); okEl.classList.add('hidden');
             const enabled = Array.from(document.querySelectorAll('.algo-enable-cb:checked')).map(c => c.value);
-            const payload = {
-                enabled_algorithms: enabled,
-                default_algorithm: document.getElementById('cfgDefaultAlgo').value,
-                decision_threshold: Number(document.getElementById('cfgThreshold').value),
-                ensemble_mode: document.getElementById('cfgEnsembleMode').value,
-                ensemble_weights: {
-                    smaug: Number(document.getElementById('wSmaug').value),
-                    vit: Number(document.getElementById('wVit').value),
-                    detectra: Number(document.getElementById('wDetectra').value),
-                    resnet18: Number(document.getElementById('wResnet').value),
-                    ela: Number(document.getElementById('wEla').value)
-                }
-            };
-            const res = await fetch('/api/admin/config', {
+            const res = await apiFetch('/api/admin/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    enabled_algorithms: enabled,
+                    default_algorithm: document.getElementById('cfgDefaultAlgo').value,
+                    decision_threshold: Number(document.getElementById('cfgThreshold').value),
+                    ensemble_mode: document.getElementById('cfgEnsembleMode').value,
+                    ensemble_weights: {
+                        smaug: Number(document.getElementById('wSmaug').value),
+                        vit: Number(document.getElementById('wVit').value),
+                        detectra: Number(document.getElementById('wDetectra').value),
+                        resnet18: Number(document.getElementById('wResnet').value),
+                        ela: Number(document.getElementById('wEla').value)
+                    }
+                })
             });
             const data = await res.json();
-            if (!res.ok) {
-                errEl.textContent = data.error || 'Gagal menyimpan konfigurasi.';
-                errEl.classList.remove('hidden');
-                return;
-            }
+            if (!res.ok) { errEl.textContent = data.error || 'Gagal menyimpan konfigurasi.'; errEl.classList.remove('hidden'); return; }
             okEl.textContent = data.message;
             okEl.classList.remove('hidden');
             loadModelsConfig();
         });
 
-        // Initial Boot
+        // 5. Security, Admin Accounts & Audit Trail
+        document.getElementById('btnChangePw').addEventListener('click', async () => {
+            const errEl = document.getElementById('pwErr'), okEl = document.getElementById('pwOk');
+            errEl.classList.add('hidden'); okEl.classList.add('hidden');
+            const res = await apiFetch('/api/admin/password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    old_password: document.getElementById('oldPassword').value,
+                    new_password: document.getElementById('newPassword').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { errEl.textContent = data.error; errEl.classList.remove('hidden'); return; }
+            okEl.textContent = data.message; okEl.classList.remove('hidden');
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            loadAdminAudit();
+        });
+
+        async function loadAdminUsers() {
+            const res = await apiFetch('/api/admin/users');
+            const data = await res.json();
+            const tbody = document.getElementById('adminUsersBody');
+            tbody.innerHTML = '';
+            (data.users || []).forEach(u => {
+                const tr = document.createElement('tr');
+                const tdU = document.createElement('td'); tdU.className = 'mono'; tdU.style.fontWeight = '600'; tdU.textContent = u.username;
+                const tdR = document.createElement('td');
+                const rc = document.createElement('span'); rc.className = 'chip chip-accent'; rc.textContent = u.role.toUpperCase();
+                tdR.appendChild(rc);
+                const tdL = document.createElement('td'); tdL.className = 'mono'; tdL.style.fontSize = '11px'; tdL.style.color = 'var(--text-secondary)'; tdL.textContent = u.last_login || 'Belum pernah';
+                const tdA = document.createElement('td');
+                if (u.username !== data.current_user) {
+                    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-danger btn-sm'; b.textContent = 'Hapus';
+                    b.addEventListener('click', async () => {
+                        if (!confirm('Hapus akun admin "' + u.username + '"?')) return;
+                        const r = await apiFetch('/api/admin/users/' + encodeURIComponent(u.username), { method: 'DELETE' });
+                        if (r.ok) { loadAdminUsers(); loadAdminAudit(); }
+                    });
+                    tdA.appendChild(b);
+                } else {
+                    tdA.innerHTML = '<span style="color:var(--text-muted);font-size:11.5px;">Aktif</span>';
+                }
+                tr.append(tdU, tdR, tdL, tdA);
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('btnCreateAdmin').addEventListener('click', async () => {
+            const errEl = document.getElementById('usrErr'), okEl = document.getElementById('usrOk');
+            errEl.classList.add('hidden'); okEl.classList.add('hidden');
+            const res = await apiFetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('newAdminUser').value.trim(),
+                    password: document.getElementById('newAdminPass').value,
+                    role: document.getElementById('newAdminRole').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { errEl.textContent = data.error; errEl.classList.remove('hidden'); return; }
+            okEl.textContent = data.message; okEl.classList.remove('hidden');
+            document.getElementById('newAdminUser').value = '';
+            document.getElementById('newAdminPass').value = '';
+            loadAdminUsers(); loadAdminAudit();
+        });
+
+        async function loadAdminAudit() {
+            const res = await apiFetch('/api/admin/audit');
+            const data = await res.json();
+            const tbody = document.getElementById('adminAuditBody');
+            tbody.innerHTML = '';
+            (data.events || []).forEach(ev => {
+                const tr = document.createElement('tr');
+                [ev.created_at, ev.username, ev.ip_addr, ev.action, ev.detail].forEach((txt, idx) => {
+                    const td = document.createElement('td');
+                    if (idx < 4) td.className = 'mono';
+                    if (idx === 0 || idx === 2) td.style.fontSize = '11px';
+                    td.textContent = txt;
+                    tr.appendChild(td);
+                });
+                const tdS = document.createElement('td');
+                const sc = document.createElement('span');
+                sc.className = 'chip ' + (ev.status === 'OK' ? 'chip-real' : 'chip-fake');
+                sc.textContent = ev.status;
+                tdS.appendChild(sc);
+                tr.appendChild(tdS);
+                tbody.appendChild(tr);
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadStats();
             loadAuditLogs();
-            setInterval(loadStats, 5000);
+            setInterval(loadStats, 6000);
         });
     </script>
 </body>

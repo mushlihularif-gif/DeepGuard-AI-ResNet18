@@ -142,3 +142,83 @@ class DetectraOpenFakeDetector:
                 p768 = self._run_scale(rgb_image, short_edge=768)
                 best = max(best, p768)
         return max(0.0, min(1.0, best))
+
+
+# ==============================================================================
+# 3. DYNAMIC ADMIN-IMPORTED ALGORITHMS (HUGGINGFACE HUB & GENERIC ONNX)
+# ==============================================================================
+
+AI_LABEL_KEYWORDS = ("ai", "fake", "artificial", "synthetic", "generated", "deepfake", "sdxl", "flux")
+
+
+def detect_ai_label_index(id2label):
+    """Automatically infer which class index corresponds to AI/Fake from HF config.id2label."""
+    if not id2label:
+        return 1
+    for k, v in id2label.items():
+        name = str(v).lower().strip()
+        if any(tok == name or tok in name.replace("-", "_").split("_") for tok in AI_LABEL_KEYWORDS):
+            return int(k)
+    return 1
+
+
+class HFImageClassifierAdapter:
+    """Generic HuggingFace Transformers AutoModelForImageClassification detector."""
+
+    def __init__(self, repo_or_dir, device=None, ai_label_idx=None):
+        from transformers import AutoImageProcessor, AutoModelForImageClassification
+
+        self.repo_or_dir = str(repo_or_dir)
+        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.processor = AutoImageProcessor.from_pretrained(self.repo_or_dir)
+        self.model = AutoModelForImageClassification.from_pretrained(self.repo_or_dir).to(self.device).eval()
+        id2label = getattr(self.model.config, "id2label", {}) or {}
+        self.ai_idx = int(ai_label_idx) if ai_label_idx is not None else detect_ai_label_index(id2label)
+        self.id2label = id2label
+
+    @torch.inference_mode()
+    def predict_prob_fake(self, rgb_image):
+        inputs = self.processor(images=rgb_image, return_tensors="pt")
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        logits = self.model(**inputs).logits[0].float()
+        if logits.numel() == 1:
+            prob = float(torch.sigmoid(logits[0]).item())
+        else:
+            probs = torch.softmax(logits, dim=-1)
+            idx = min(max(self.ai_idx, 0), probs.numel() - 1)
+            prob = float(probs[idx].item())
+        return max(0.0, min(1.0, prob))
+
+
+class GenericONNXDetector:
+    """Generic ONNX Runtime image classifier adapter for admin-uploaded .onnx models."""
+
+    def __init__(self, onnx_path, input_size=224, ai_label_idx=1):
+        import onnxruntime as ort
+
+        self.onnx_path = Path(onnx_path)
+        self.input_size = int(input_size)
+        self.ai_idx = int(ai_label_idx)
+        sess_opts = ort.SessionOptions()
+        sess_opts.intra_op_num_threads = 4
+        self.session = ort.InferenceSession(
+            str(self.onnx_path),
+            sess_options=sess_opts,
+            providers=["CPUExecutionProvider"],
+        )
+        self.input_name = self.session.get_inputs()[0].name
+
+    def predict_prob_fake(self, rgb_image):
+        resized = rgb_image.resize((self.input_size, self.input_size), Image.Resampling.BILINEAR)
+        arr = np.asarray(resized, dtype=np.float32) / 255.0
+        chw = np.transpose(arr, (2, 0, 1))
+        norm = (chw - IMAGENET_MEAN) / IMAGENET_STD
+        inp = np.expand_dims(norm, axis=0).astype(np.float32)
+        out = np.ravel(self.session.run(None, {self.input_name: inp})[0]).astype(np.float64)
+        if out.size == 1:
+            return float(_sigmoid(out[0]))
+        shifted = out - np.max(out)
+        exps = np.exp(shifted)
+        probs = exps / np.sum(exps)
+        idx = min(max(self.ai_idx, 0), probs.size - 1)
+        return float(max(0.0, min(1.0, probs[idx])))

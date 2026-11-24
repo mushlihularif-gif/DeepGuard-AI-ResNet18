@@ -25,10 +25,7 @@
                 <a href="panduan.html" class="nav-link active">Metodologi</a>
                 <a href="tentang.html" class="nav-link">Arsitektur</a>
                 <span class="nav-divider"></span>
-                <a href="admin.html" class="nav-admin">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-                    Konsol Admin
-                </a>
+                <a href="deteksi.html" class="btn btn-primary btn-sm">Mulai Deteksi</a>
             </nav>
         </div>
     </header>
@@ -123,7 +120,7 @@
                                 </tr>
                                 <tr>
                                     <td style="color: var(--text-secondary);">Ambang Keputusan Aktif</td>
-                                    <td class="mono">{{ '%.0f%%'|format(model_info.decision_threshold * 100) }} (dapat diatur di Konsol Admin)</td>
+                                    <td class="mono">{{ '%.0f%%'|format(model_info.decision_threshold * 100) }} (konfigurasi administrator)</td>
                                 </tr>
                                 <tr>
                                     <td style="color: var(--text-secondary);">Verifikasi Kredensial C2PA</td>
@@ -144,7 +141,7 @@
     <footer class="site-footer">
         <div class="footer-inner">
             <span><strong>DeepGuard AI</strong> &bull; Platform Forensik Citra Digital &amp; Verifikasi Generative AI</span>
-            <span class="mono">Multi-Algorithm Detection &bull; C2PA Offline Verification</span>
+            <span class="mono">Multi-Algorithm Detection &bull; C2PA Offline &bull; <a href="/admin/login" style="color: var(--text-secondary); text-decoration: underline;">Portal Admin</a></span>
         </div>
     </footer>
 

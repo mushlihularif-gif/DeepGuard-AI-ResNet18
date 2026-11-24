@@ -16,9 +16,14 @@ import hashlib
 import io
 import json
 import os
+import re
+import secrets
+import shutil
 import threading
 import time
 import warnings
+import zipfile
+from functools import wraps
 from pathlib import Path
 from threading import Event, Lock
 
@@ -28,9 +33,11 @@ from flask import (
     Response,
     abort,
     jsonify,
+    redirect,
     render_template,
     request,
     send_from_directory,
+    session,
 )
 from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -50,9 +57,73 @@ class InMemoryRequest(Request):
 app = Flask(__name__)
 app.request_class = InMemoryRequest
 MAX_FILE_BYTES = 10 * 1024 * 1024
-app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_BYTES + 64 * 1024
+# Keep request bound spacious enough for admin .pt/.onnx/.zip uploads while /api/predict enforces strict 10 MB limit
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = datetime.timedelta(hours=8)
 Image.MAX_IMAGE_PIXELS = 25_000_000
 ROOT = Path(__file__).resolve().parent
+
+
+def _load_or_create_secret_key():
+    env_key = os.environ.get("DEEPGUARD_SECRET_KEY")
+    if env_key:
+        return env_key
+    key_file = ROOT / "data" / ".secret_key"
+    key_file.parent.mkdir(parents=True, exist_ok=True)
+    if key_file.exists():
+        return key_file.read_text(encoding="utf-8").strip()
+    new_key = secrets.token_hex(32)
+    key_file.write_text(new_key, encoding="utf-8")
+    return new_key
+
+
+app.secret_key = _load_or_create_secret_key()
+
+# Brute-force protection for Admin Login (max 5 failed attempts per IP in 5 min)
+_login_attempts_lock = Lock()
+_login_attempts = {}
+LOGIN_MAX_FAILURES = 5
+LOGIN_WINDOW_SEC = 300
+BUILTIN_ALGO_IDS = {"ensemble", "smaug", "detectra", "vit", "resnet18", "ela"}
+
+
+def _client_ip():
+    return request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+
+
+def _is_login_rate_limited(ip):
+    now = time.time()
+    with _login_attempts_lock:
+        recent = [t for t in _login_attempts.get(ip, []) if now - t < LOGIN_WINDOW_SEC]
+        _login_attempts[ip] = recent
+        return len(recent) >= LOGIN_MAX_FAILURES
+
+
+def _record_login_failure(ip):
+    now = time.time()
+    with _login_attempts_lock:
+        recent = [t for t in _login_attempts.get(ip, []) if now - t < LOGIN_WINDOW_SEC]
+        recent.append(now)
+        _login_attempts[ip] = recent
+
+
+def _clear_login_failures(ip):
+    with _login_attempts_lock:
+        _login_attempts.pop(ip, None)
+
+
+def admin_required(fn):
+    """Protect Admin Portal pages (redirect to /admin/login) and /api/admin/* APIs (401 JSON)."""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("admin_user"):
+            if request.path.startswith("/api/"):
+                return jsonify(error="Autentikasi administrator diperlukan. Silakan login terlebih dahulu."), 401
+            return redirect("/admin/login")
+        return fn(*args, **kwargs)
+    return wrapper
 
 # Environment overrides & core startup state (preserves unit test contract)
 ENGINE = os.environ.get("DEEPGUARD_ENGINE", "resnet18")
@@ -274,6 +345,16 @@ def build_cnn_architecture(arch_name, pretrained=False):
         m = tv_models.efficientnet_b0(weights=weights)
         m.classifier[-1] = torch.nn.Linear(m.classifier[-1].in_features, 2)
         return m
+    if arch_name == "convnext_tiny":
+        weights = tv_models.ConvNeXt_Tiny_Weights.IMAGENET1K_V1 if pretrained else None
+        m = tv_models.convnext_tiny(weights=weights)
+        m.classifier[-1] = torch.nn.Linear(m.classifier[-1].in_features, 2)
+        return m
+    if arch_name == "densenet121":
+        weights = tv_models.DenseNet121_Weights.IMAGENET1K_V1 if pretrained else None
+        m = tv_models.densenet121(weights=weights)
+        m.classifier = torch.nn.Linear(m.classifier.in_features, 2)
+        return m
     raise ValueError(f"Unsupported architecture: {arch_name}")
 
 
@@ -309,6 +390,8 @@ def _register_custom_trained_checkpoints(target_device):
     for arch_id, display_name, subtitle in [
         ("mobilenet_v3_small", "MobileNetV3-Small", "Lightweight CNN (224×224)"),
         ("efficientnet_b0", "EfficientNet-B0", "Compound Scaled CNN (224×224)"),
+        ("convnext_tiny", "ConvNeXt-Tiny", "Modern Pure-Conv CNN (224×224)"),
+        ("densenet121", "DenseNet-121", "Dense Feature Reuse CNN (224×224)"),
     ]:
         candidates = sorted(models_dir.glob(f"trained_{arch_id}_*.pt"), reverse=True)
         if not candidates:
@@ -335,6 +418,97 @@ def _register_custom_trained_checkpoints(target_device):
             }
         except Exception:
             app.logger.warning("Could not load custom checkpoint %s", latest)
+
+
+hf_import_lock = Lock()
+hf_import_state = {
+    "status": "IDLE",  # IDLE | IMPORTING | COMPLETED | ERROR
+    "repo_id": "",
+    "algo_id": "",
+    "message": "Siap mengimpor model dari HuggingFace Hub.",
+}
+
+
+def _load_single_custom_algorithm(rec, target_device):
+    """Load one custom algorithm record (hf_transformers, local_pt, or local_onnx) into algorithms_registry."""
+    from sota_detectors import GenericONNXDetector, HFImageClassifierAdapter
+
+    algo_id = rec["algo_id"]
+    kind = rec["source_kind"]
+    ref = rec["source_ref"]
+    ai_idx = rec.get("ai_label_idx")
+
+    if kind == "hf_transformers":
+        local_dir = ROOT / ref if not Path(ref).is_absolute() else Path(ref)
+        target = str(local_dir) if local_dir.exists() else ref
+        adapter = HFImageClassifierAdapter(target, device="cuda" if target_device.type == "cuda" else "cpu", ai_label_idx=ai_idx)
+        algorithms_registry[algo_id] = {
+            "id": algo_id,
+            "name": rec["name"],
+            "subtitle": rec["subtitle"],
+            "type": rec["algo_type"],
+            "description": rec["description"],
+            "input_size": rec["input_size"],
+            "score_type": "hf_softmax",
+            "model": adapter,
+            "transform": None,
+            "metadata": {"architecture": rec["name"], "id2label": adapter.id2label},
+            "sha256": "hf-hub",
+            "checkpoint_path": ref,
+            "loaded": True,
+            "supports_gradcam": False,
+        }
+    elif kind == "local_onnx":
+        p = ROOT / ref if not Path(ref).is_absolute() else Path(ref)
+        if not p.exists():
+            raise FileNotFoundError(f"ONNX file missing: {ref}")
+        inp_sz = int(re.sub(r"\D", "", str(rec["input_size"])) or "224")
+        adapter = GenericONNXDetector(p, input_size=inp_sz, ai_label_idx=1 if ai_idx is None else int(ai_idx))
+        algorithms_registry[algo_id] = {
+            "id": algo_id,
+            "name": rec["name"],
+            "subtitle": rec["subtitle"],
+            "type": rec["algo_type"],
+            "description": rec["description"],
+            "input_size": inp_sz,
+            "score_type": "onnx_classifier",
+            "model": adapter,
+            "transform": None,
+            "metadata": {"architecture": rec["name"]},
+            "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
+            "checkpoint_path": ref,
+            "loaded": True,
+            "supports_gradcam": False,
+        }
+    elif kind == "local_pt":
+        p = ROOT / ref if not Path(ref).is_absolute() else Path(ref)
+        if not p.exists():
+            raise FileNotFoundError(f"Checkpoint missing: {ref}")
+        m, tf, meta = load_validated_cnn_checkpoint(p, target_device)
+        algorithms_registry[algo_id] = {
+            "id": algo_id,
+            "name": rec["name"],
+            "subtitle": rec["subtitle"],
+            "type": rec["algo_type"],
+            "description": rec["description"],
+            "input_size": 224,
+            "score_type": "temperature_scaled_softmax",
+            "model": m,
+            "transform": tf,
+            "metadata": meta,
+            "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
+            "checkpoint_path": ref,
+            "loaded": True,
+            "supports_gradcam": True,
+        }
+
+
+def _load_persisted_custom_algorithms(target_device):
+    for rec in storage.list_custom_algorithms():
+        try:
+            _load_single_custom_algorithm(rec, target_device)
+        except Exception as exc:
+            app.logger.warning("Skipping custom algorithm %s: %s", rec.get("algo_id"), exc)
 
 
 def init_model_on_startup():
@@ -439,6 +613,8 @@ def init_model_on_startup():
                         )
                     except Exception:
                         app.logger.warning("Detectra-OpenFake preload skipped")
+
+                _load_persisted_custom_algorithms(device)
         except Exception:
             app.logger.warning("Optional secondary engine preload skipped")
 
@@ -464,6 +640,7 @@ def _get_public_algorithms():
             "loaded": v["loaded"],
             "enabled": k in enabled,
             "is_default": k == cfg.get("default_algorithm", "resnet18"),
+            "is_builtin": k in BUILTIN_ALGO_IDS,
             "supports_gradcam": v.get("supports_gradcam", False),
             "sha256": (v["sha256"] or "")[:12] if v.get("sha256") else "N/A",
             "checkpoint_path": v.get("checkpoint_path", ""),
@@ -536,10 +713,19 @@ def tentang():
     return render_template("tentang.html")
 
 
+@app.get("/admin/login")
+@app.get("/admin/login.html")
+def admin_login_page():
+    if session.get("admin_user"):
+        return redirect("/admin")
+    return render_template("admin_login.html")
+
+
 @app.get("/admin")
 @app.get("/admin.html")
+@admin_required
 def admin():
-    return render_template("admin.html")
+    return render_template("admin.html", admin_user=session.get("admin_user"), admin_role=session.get("admin_role", "admin"))
 
 
 @app.get("/api/model-status")
@@ -942,6 +1128,95 @@ def too_large(error):
 
 
 # ==============================================================================
+# ADMIN AUTHENTICATION & SECURITY AUDIT APIs
+# ==============================================================================
+
+@app.post("/api/admin/login")
+def admin_login_api():
+    ip = _client_ip()
+    if _is_login_rate_limited(ip):
+        storage.record_admin_event("unknown", ip, "LOGIN", "Blokir sementara (terlalu banyak percobaan gagal)", "DENIED")
+        return jsonify(error="Terlalu banyak percobaan login gagal. Coba lagi dalam 5 menit."), 429
+
+    payload = request.get_json(silent=True) or request.form
+    username = str(payload.get("username", "")).strip()
+    password = str(payload.get("password", ""))
+    user = storage.verify_admin(username, password)
+    if not user:
+        _record_login_failure(ip)
+        storage.record_admin_event(username or "unknown", ip, "LOGIN", "Kredensial tidak valid", "DENIED")
+        return jsonify(error="Username atau kata sandi salah."), 401
+
+    _clear_login_failures(ip)
+    session.permanent = True
+    session["admin_user"] = user["username"]
+    session["admin_role"] = user["role"]
+    storage.record_admin_event(user["username"], ip, "LOGIN", "Autentikasi berhasil", "OK")
+    return jsonify(success=True, user=user)
+
+
+@app.post("/api/admin/logout")
+def admin_logout_api():
+    uname = session.get("admin_user")
+    if uname:
+        storage.record_admin_event(uname, _client_ip(), "LOGOUT", "Sesi administrator diakhiri", "OK")
+    session.clear()
+    return jsonify(success=True)
+
+
+@app.get("/api/admin/me")
+@admin_required
+def admin_me_api():
+    return jsonify(username=session.get("admin_user"), role=session.get("admin_role", "admin"))
+
+
+@app.post("/api/admin/password")
+@admin_required
+def admin_change_password_api():
+    payload = request.get_json(silent=True) or request.form
+    ok, msg = storage.change_admin_password(
+        session["admin_user"],
+        str(payload.get("old_password", "")),
+        str(payload.get("new_password", "")),
+    )
+    storage.record_admin_event(session["admin_user"], _client_ip(), "PASSWORD_CHANGE", msg, "OK" if ok else "DENIED")
+    return jsonify(success=ok, message=msg, error=None if ok else msg), (200 if ok else 400)
+
+
+@app.get("/api/admin/users")
+@admin_required
+def admin_list_users_api():
+    return jsonify(users=storage.list_admins(), current_user=session.get("admin_user"))
+
+
+@app.post("/api/admin/users")
+@admin_required
+def admin_create_user_api():
+    payload = request.get_json(silent=True) or request.form
+    ok, msg = storage.create_admin(
+        str(payload.get("username", "")),
+        str(payload.get("password", "")),
+        str(payload.get("role", "admin")),
+    )
+    storage.record_admin_event(session["admin_user"], _client_ip(), "CREATE_ADMIN", msg, "OK" if ok else "ERROR")
+    return jsonify(success=ok, message=msg, error=None if ok else msg), (200 if ok else 400)
+
+
+@app.delete("/api/admin/users/<username>")
+@admin_required
+def admin_delete_user_api(username):
+    ok, msg = storage.delete_admin(username, session.get("admin_user"))
+    storage.record_admin_event(session["admin_user"], _client_ip(), "DELETE_ADMIN", msg, "OK" if ok else "DENIED")
+    return jsonify(success=ok, message=msg, error=None if ok else msg), (200 if ok else 400)
+
+
+@app.get("/api/admin/audit")
+@admin_required
+def admin_audit_trail_api():
+    return jsonify(events=storage.get_admin_events(limit=60))
+
+
+# ==============================================================================
 # ADMIN SOC APIs — MONITORING, DATASET CURATION, SAFE TRAINING, MODEL MANAGER
 # ==============================================================================
 
@@ -962,6 +1237,7 @@ def _count_dataset_split():
 
 
 @app.get("/api/admin/stats")
+@admin_required
 def admin_stats():
     scan_stats = storage.get_scan_stats()
     cfg = storage.get_config()
@@ -990,10 +1266,12 @@ def admin_stats():
         benchmarks=real_benchmarks,
         training_runs_count=len(runs),
         recent_scans=storage.get_scan_logs(limit=20),
+        admin_user=session.get("admin_user"),
     )
 
 
 @app.get("/api/admin/logs")
+@admin_required
 def admin_get_logs():
     verdict = request.args.get("verdict", "ALL")
     algo = request.args.get("algorithm", "ALL")
@@ -1003,12 +1281,15 @@ def admin_get_logs():
 
 
 @app.delete("/api/admin/logs")
+@admin_required
 def admin_clear_logs():
     storage.clear_scan_logs()
+    storage.record_admin_event(session["admin_user"], _client_ip(), "CLEAR_SCAN_LOGS", "Menghapus seluruh log pemindaian", "OK")
     return jsonify(success=True, message="Seluruh log audit pemindaian telah dibersihkan.")
 
 
 @app.get("/api/admin/logs/export")
+@admin_required
 def admin_export_logs():
     csv_data = storage.export_scan_logs_csv()
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1020,6 +1301,7 @@ def admin_export_logs():
 
 
 @app.get("/api/admin/dataset/list")
+@admin_required
 def admin_dataset_list():
     split_filter = request.args.get("split", "all").lower()
     cat_filter = request.args.get("category", "all").lower()
@@ -1042,10 +1324,11 @@ def admin_dataset_list():
                     "size_kb": round(p.stat().st_size / 1024, 1),
                     "url": f"/api/admin/dataset/image/{sp}/{cat}/{p.name}",
                 })
-    return jsonify(items=items[:120], counts=_count_dataset_split())
+    return jsonify(items=items[:150], counts=_count_dataset_split())
 
 
 @app.get("/api/admin/dataset/image/<split>/<category>/<filename>")
+@admin_required
 def admin_dataset_image(split, category, filename):
     if split not in ("train", "val") or category not in ("real", "fake"):
         abort(404)
@@ -1056,9 +1339,42 @@ def admin_dataset_image(split, category, filename):
     return send_from_directory(target_dir, safe_name)
 
 
+def _save_validated_dataset_bytes(raw_bytes, orig_name, split, category):
+    """Validate and save raw image bytes (JPG/PNG/WebP -> JPG/PNG) into dataset/<split>/<category>."""
+    if len(raw_bytes) > MAX_FILE_BYTES:
+        return None, "ukuran > 10 MB"
+    try:
+        with Image.open(io.BytesIO(raw_bytes)) as img:
+            fmt = (img.format or "").upper()
+            if fmt not in {"JPEG", "PNG", "WEBP"}:
+                return None, "bukan JPG/PNG/WebP"
+            if min(img.size) < 32:
+                return None, "resolusi < 32px"
+            rgb = ImageOps.exif_transpose(img).convert("RGB") if fmt == "WEBP" else None
+    except Exception:
+        return None, "berkas gambar rusak"
+
+    target_dir = ROOT / "dataset" / split / category
+    target_dir.mkdir(parents=True, exist_ok=True)
+    fname = secure_filename(Path(orig_name).name) or "sample.png"
+    stem = Path(fname).stem or "sample"
+    ext = ".png" if rgb is not None else (Path(fname).suffix.lower() if Path(fname).suffix.lower() in {".jpg", ".jpeg", ".png"} else ".png")
+    dest = target_dir / f"{stem}{ext}"
+    idx = 1
+    while dest.exists():
+        dest = target_dir / f"{stem}_{idx}{ext}"
+        idx += 1
+    if rgb is not None:
+        rgb.save(dest, format="PNG")
+    else:
+        dest.write_bytes(raw_bytes)
+    return dest.name, None
+
+
 @app.post("/api/admin/dataset/upload")
+@admin_required
 def admin_dataset_upload():
-    """Upload one or multiple validated images into dataset/<split>/<category>."""
+    """Upload one or multiple validated images (JPG/PNG/WebP) into dataset/<split>/<category>."""
     files = request.files.getlist("images") or ([request.files["image"]] if "image" in request.files else [])
     if not files:
         return jsonify(error="Pilih minimal satu berkas gambar."), 400
@@ -1068,41 +1384,21 @@ def admin_dataset_upload():
     if split not in ("train", "val") or category not in ("real", "fake"):
         return jsonify(error="Parameter split atau kategori tidak valid."), 400
 
-    target_dir = ROOT / "dataset" / split / category
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    saved = []
-    rejected = []
+    saved, rejected = [], []
     for f in files:
         if not f or not f.filename:
             continue
-        if not is_valid_file(f.filename, f.mimetype):
-            rejected.append(f"{f.filename} (format tidak didukung)")
-            continue
         raw = f.read(MAX_FILE_BYTES + 1)
-        if len(raw) > MAX_FILE_BYTES:
-            rejected.append(f"{f.filename} (>10 MB)")
-            continue
-        try:
-            with Image.open(io.BytesIO(raw)) as img:
-                img.verify()
-        except Exception:
-            rejected.append(f"{f.filename} (berkas gambar rusak)")
-            continue
-
-        fname = secure_filename(f.filename) or "sample.png"
-        stem, ext = Path(fname).stem, Path(fname).suffix.lower() or ".png"
-        dest = target_dir / f"{stem}{ext}"
-        idx = 1
-        while dest.exists():
-            dest = target_dir / f"{stem}_{idx}{ext}"
-            idx += 1
-        dest.write_bytes(raw)
-        saved.append(dest.name)
+        out_name, err = _save_validated_dataset_bytes(raw, f.filename, split, category)
+        if err:
+            rejected.append(f"{f.filename} ({err})")
+        else:
+            saved.append(out_name)
 
     if not saved:
         return jsonify(error="Tidak ada berkas valid yang berhasil diunggah: " + ", ".join(rejected)), 400
 
+    storage.record_admin_event(session["admin_user"], _client_ip(), "DATASET_UPLOAD", f"Unggah {len(saved)} citra ke {split}/{category}", "OK")
     return jsonify(
         success=True,
         saved=saved,
@@ -1113,7 +1409,127 @@ def admin_dataset_upload():
     )
 
 
+@app.post("/api/admin/dataset/upload-zip")
+@admin_required
+def admin_dataset_upload_zip():
+    """Bulk import a .zip archive into dataset/<split> (auto-detects real/ & fake/ subfolders if present)."""
+    zfile = request.files.get("archive")
+    if zfile is None or not zfile.filename or not zfile.filename.lower().endswith(".zip"):
+        return jsonify(error="Unggah berkas arsip berformat .zip."), 400
+
+    split = request.form.get("split", "train").lower()
+    fallback_cat = request.form.get("category", "real").lower()
+    if split not in ("train", "val") or fallback_cat not in ("real", "fake"):
+        return jsonify(error="Parameter split atau kategori default tidak valid."), 400
+
+    raw_zip = zfile.read(60 * 1024 * 1024 + 1)
+    if len(raw_zip) > 60 * 1024 * 1024:
+        return jsonify(error="Ukuran arsip ZIP melebihi 60 MB."), 413
+
+    saved_real, saved_fake, skipped = 0, 0, 0
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw_zip)) as zf:
+            members = [m for m in zf.infolist() if not m.is_dir()]
+            for info in members[:300]:
+                # Zip-slip & macOS junk protection
+                norm = info.filename.replace("\\", "/")
+                if norm.startswith("/") or ".." in norm.split("/") or "__MACOSX" in norm:
+                    skipped += 1
+                    continue
+                if Path(norm).suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}:
+                    skipped += 1
+                    continue
+                if info.file_size > MAX_FILE_BYTES:
+                    skipped += 1
+                    continue
+                parts_lower = [p.lower() for p in Path(norm).parts[:-1]]
+                if any(k in parts_lower for k in ("fake", "ai", "synthetic", "aiartdata")):
+                    cat = "fake"
+                elif any(k in parts_lower for k in ("real", "human", "authentic", "realart")):
+                    cat = "real"
+                else:
+                    cat = fallback_cat
+                data = zf.read(info)
+                out_name, err = _save_validated_dataset_bytes(data, Path(norm).name, split, cat)
+                if err:
+                    skipped += 1
+                elif cat == "real":
+                    saved_real += 1
+                else:
+                    saved_fake += 1
+    except zipfile.BadZipFile:
+        return jsonify(error="Berkas ZIP rusak atau tidak valid."), 400
+
+    total_saved = saved_real + saved_fake
+    if total_saved == 0:
+        return jsonify(error="Tidak ada citra valid (JPG/PNG/WebP) ditemukan dalam arsip ZIP."), 400
+
+    msg = f"Impor ZIP selesai: {saved_real} REAL & {saved_fake} FAKE ditambahkan ke dataset/{split} ({skipped} dilewati)."
+    storage.record_admin_event(session["admin_user"], _client_ip(), "DATASET_ZIP_IMPORT", msg, "OK")
+    return jsonify(success=True, saved_real=saved_real, saved_fake=saved_fake, skipped=skipped, counts=_count_dataset_split(), message=msg)
+
+
+@app.post("/api/admin/dataset/move")
+@admin_required
+def admin_dataset_move():
+    """Relabel or move an image between real/fake or train/val."""
+    payload = request.get_json(silent=True) or {}
+    src_split = str(payload.get("split", "")).lower()
+    src_cat = str(payload.get("category", "")).lower()
+    dst_split = str(payload.get("target_split", src_split)).lower()
+    dst_cat = str(payload.get("target_category", src_cat)).lower()
+    filename = str(payload.get("filename", ""))
+    if src_split not in ("train", "val") or src_cat not in ("real", "fake") or dst_split not in ("train", "val") or dst_cat not in ("real", "fake"):
+        return jsonify(error="Target split/kategori tidak valid."), 400
+    safe_name = secure_filename(filename)
+    if not safe_name or safe_name != filename:
+        return jsonify(error="Nama berkas tidak valid."), 400
+    src = (ROOT / "dataset" / src_split / src_cat / safe_name).resolve()
+    if (ROOT / "dataset" / src_split / src_cat).resolve() not in src.parents or not src.exists():
+        return jsonify(error="Berkas asal tidak ditemukan."), 404
+    dst_dir = ROOT / "dataset" / dst_split / dst_cat
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    dst = dst_dir / safe_name
+    idx = 1
+    while dst.exists():
+        dst = dst_dir / f"{dst.stem}_{idx}{dst.suffix}"
+        idx += 1
+    shutil.move(str(src), str(dst))
+    storage.record_admin_event(session["admin_user"], _client_ip(), "DATASET_MOVE", f"Pindah {safe_name}: {src_split}/{src_cat} -> {dst_split}/{dst_cat}", "OK")
+    return jsonify(success=True, message=f"{safe_name} dipindahkan ke {dst_split}/{dst_cat}.", counts=_count_dataset_split())
+
+
+@app.post("/api/admin/dataset/autosplit")
+@admin_required
+def admin_dataset_autosplit():
+    """Rebalance dataset into stratified 80% train / 20% val across both classes."""
+    moved = 0
+    for cat in ("real", "fake"):
+        tr_dir = ROOT / "dataset" / "train" / cat
+        va_dir = ROOT / "dataset" / "val" / cat
+        tr_dir.mkdir(parents=True, exist_ok=True)
+        va_dir.mkdir(parents=True, exist_ok=True)
+        all_files = sorted(
+            [p for p in list(tr_dir.iterdir()) + list(va_dir.iterdir()) if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png"}],
+            key=lambda p: p.name,
+        )
+        if len(all_files) < 5:
+            continue
+        target_val = max(1, round(len(all_files) * 0.2))
+        val_set = set(all_files[:target_val])
+        for p in all_files:
+            desired_dir = va_dir if p in val_set else tr_dir
+            if p.parent.resolve() != desired_dir.resolve():
+                dest = desired_dir / p.name
+                if not dest.exists():
+                    shutil.move(str(p), str(dest))
+                    moved += 1
+    storage.record_admin_event(session["admin_user"], _client_ip(), "DATASET_AUTOSPLIT", f"Auto-split 80/20 selesai ({moved} berkas dipindahkan)", "OK")
+    return jsonify(success=True, moved=moved, counts=_count_dataset_split(), message=f"Dataset berhasil diseimbangkan 80/20 ({moved} berkas dipindahkan).")
+
+
 @app.delete("/api/admin/dataset/item")
+@admin_required
 def admin_dataset_delete():
     payload = request.get_json(silent=True) or {}
     split = str(payload.get("split", "")).lower()
@@ -1363,6 +1779,7 @@ def _background_train_worker(run_id, arch_name, base_mode, epochs, batch_size, l
 
 
 @app.post("/api/admin/train/start")
+@admin_required
 def admin_train_start():
     global training_state
     with training_lock:
@@ -1371,7 +1788,7 @@ def admin_train_start():
 
     payload = request.get_json(silent=True) or request.form
     arch_name = str(payload.get("architecture", "resnet18"))
-    if arch_name not in ("resnet18", "mobilenet_v3_small", "efficientnet_b0"):
+    if arch_name not in ("resnet18", "mobilenet_v3_small", "efficientnet_b0", "convnext_tiny", "densenet121"):
         return jsonify(error="Arsitektur tidak didukung."), 400
     base_mode = str(payload.get("base_mode", "finetune_active"))
     epochs = max(1, min(int(payload.get("epochs", 5)), 30))
@@ -1419,6 +1836,7 @@ def admin_train_start():
             "logs": [f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Job #{run_id} dimulai ({arch_name}, {epochs} epoch, bs={batch_size}, lr={lr})."],
         }
 
+    storage.record_admin_event(session["admin_user"], _client_ip(), "TRAIN_START", f"Job #{run_id}: {arch_name} ({epochs} epoch)", "OK")
     t = threading.Thread(
         target=_background_train_worker,
         args=(run_id, arch_name, base_mode, epochs, batch_size, lr, freeze_backbone, use_augment),
@@ -1429,23 +1847,28 @@ def admin_train_start():
 
 
 @app.post("/api/admin/train/stop")
+@admin_required
 def admin_train_stop():
     training_cancel_event.set()
+    storage.record_admin_event(session["admin_user"], _client_ip(), "TRAIN_STOP", "Menghentikan pelatihan berjalan", "OK")
     return jsonify(success=True, message="Sinyal pembatalan dikirim ke worker pelatihan.")
 
 
 @app.get("/api/admin/train/status")
+@admin_required
 def admin_train_status():
     with training_lock:
         return jsonify(training_state)
 
 
 @app.get("/api/admin/train/runs")
+@admin_required
 def admin_train_runs():
     return jsonify(runs=storage.list_training_runs(limit=25))
 
 
 @app.get("/api/admin/models")
+@admin_required
 def admin_list_models():
     """List all registered engines and available ResNet/custom checkpoint files."""
     cfg = storage.get_config()
@@ -1467,6 +1890,7 @@ def admin_list_models():
 
 
 @app.post("/api/admin/models/activate")
+@admin_required
 def admin_activate_checkpoint():
     """Hot-swap an active validated CNN checkpoint without restarting Flask."""
     global detector_model, preprocess_pipeline, model_metadata, model_sha256
@@ -1506,6 +1930,7 @@ def admin_activate_checkpoint():
 
 
 @app.post("/api/admin/config")
+@admin_required
 def admin_update_config():
     """Persist Admin algorithm configuration (enabled models, default engine, threshold, ensemble weights)."""
     payload = request.get_json(silent=True) or {}
@@ -1533,7 +1958,6 @@ def admin_update_config():
         if not valid_en:
             return jsonify(error="Minimal satu algoritma harus tetap aktif."), 400
         updates["enabled_algorithms"] = valid_en
-        # Ensure default algorithm stays among enabled
         cur_def = updates.get("default_algorithm") or storage.get_config().get("default_algorithm")
         if cur_def not in valid_en:
             updates["default_algorithm"] = valid_en[0]
@@ -1554,7 +1978,211 @@ def admin_update_config():
         updates["ensemble_weights"] = cleaned
 
     new_cfg = storage.update_config(updates)
+    storage.record_admin_event(session["admin_user"], _client_ip(), "UPDATE_CONFIG", f"Default={new_cfg.get('default_algorithm')}, Threshold={new_cfg.get('decision_threshold')}", "OK")
     return jsonify(success=True, config=new_cfg, message="Konfigurasi sistem berhasil disimpan dan diterapkan.")
+
+
+# ==============================================================================
+# DYNAMIC ALGORITHM ONBOARDING (HUGGINGFACE HUB IMPORT & LOCAL .PT/.ONNX UPLOAD)
+# ==============================================================================
+
+def _slugify_algo_id(text):
+    slug = re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")[:32]
+    return slug or f"custom_{int(time.time())}"
+
+
+def _hf_import_worker(repo_id, algo_id, display_name, algo_type, ai_label_idx, admin_user, ip):
+    global hf_import_state
+    try:
+        from huggingface_hub import snapshot_download
+
+        local_rel = f"models/custom_hf/{algo_id}"
+        local_dir = ROOT / local_rel
+        local_dir.mkdir(parents=True, exist_ok=True)
+        with hf_import_lock:
+            hf_import_state["message"] = f"Mengunduh bobot {repo_id} dari HuggingFace Hub..."
+        snapshot_download(repo_id, local_dir=str(local_dir), allow_patterns=["*.json", "*.safetensors", "*.bin", "*.txt"])
+
+        with hf_import_lock:
+            hf_import_state["message"] = f"Memuat {display_name} ke memori ({device_name})..."
+
+        rec = {
+            "algo_id": algo_id,
+            "name": display_name,
+            "subtitle": f"HF: {repo_id}",
+            "algo_type": algo_type or "HF Classifier",
+            "source_kind": "hf_transformers",
+            "source_ref": local_rel,
+            "input_size": "Auto (HF Processor)",
+            "ai_label_idx": ai_label_idx,
+            "description": f"Model klasifikasi citra yang diimpor dari HuggingFace Hub ({repo_id}).",
+        }
+        _load_single_custom_algorithm(rec, device)
+        storage.save_custom_algorithm(**rec)
+
+        cfg = storage.get_config()
+        enabled = list(cfg.get("enabled_algorithms", []))
+        if algo_id not in enabled:
+            enabled.append(algo_id)
+            storage.update_config({"enabled_algorithms": enabled})
+
+        storage.record_admin_event(admin_user, ip, "ADD_ALGO_HF", f"Impor {repo_id} sebagai '{algo_id}'", "OK")
+        with hf_import_lock:
+            hf_import_state = {
+                "status": "COMPLETED",
+                "repo_id": repo_id,
+                "algo_id": algo_id,
+                "message": f"Berhasil! '{display_name}' aktif dan siap dipilih di halaman Deteksi User.",
+            }
+    except Exception as exc:
+        app.logger.exception("HF import failed for %s", repo_id)
+        storage.record_admin_event(admin_user, ip, "ADD_ALGO_HF", f"Gagal impor {repo_id}: {exc}", "ERROR")
+        with hf_import_lock:
+            hf_import_state = {
+                "status": "ERROR",
+                "repo_id": repo_id,
+                "algo_id": algo_id,
+                "message": f"Gagal mengimpor model: {exc}",
+            }
+
+
+@app.post("/api/admin/algorithms/import-hf")
+@admin_required
+def admin_import_hf_algorithm():
+    """Download, validate, register, and enable any HuggingFace image-classification detector."""
+    global hf_import_state
+    with hf_import_lock:
+        if hf_import_state["status"] == "IMPORTING":
+            return jsonify(error="Sedang ada proses impor HuggingFace yang berjalan. Harap tunggu selesai."), 409
+
+    payload = request.get_json(silent=True) or request.form
+    repo_id = str(payload.get("repo_id", "")).strip()
+    if not re.match(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", repo_id):
+        return jsonify(error="Format Repo ID tidak valid (contoh: haywoodsloan/ai-image-detector-deploy)."), 400
+
+    display_name = str(payload.get("name", "")).strip() or repo_id.split("/")[-1]
+    algo_type = str(payload.get("algo_type", "HuggingFace Model")).strip() or "HuggingFace Model"
+    raw_idx = payload.get("ai_label_idx", "")
+    ai_label_idx = int(raw_idx) if str(raw_idx).strip().isdigit() else None
+
+    algo_id = "hf_" + _slugify_algo_id(display_name)
+    if algo_id in BUILTIN_ALGO_IDS:
+        algo_id = algo_id + "_custom"
+
+    with hf_import_lock:
+        hf_import_state = {
+            "status": "IMPORTING",
+            "repo_id": repo_id,
+            "algo_id": algo_id,
+            "message": f"Menghubungkan ke HuggingFace Hub ({repo_id})...",
+        }
+
+    t = threading.Thread(
+        target=_hf_import_worker,
+        args=(repo_id, algo_id, display_name, algo_type, ai_label_idx, session["admin_user"], _client_ip()),
+        daemon=True,
+    )
+    t.start()
+    return jsonify(success=True, algo_id=algo_id, message=f"Impor {repo_id} dimulai di latar belakang.")
+
+
+@app.get("/api/admin/algorithms/import-status")
+@admin_required
+def admin_hf_import_status():
+    with hf_import_lock:
+        return jsonify(hf_import_state)
+
+
+@app.post("/api/admin/algorithms/upload")
+@admin_required
+def admin_upload_local_algorithm():
+    """Upload a local .pt PyTorch checkpoint or .onnx model and immediately register it as an algorithm."""
+    file = request.files.get("model_file")
+    if file is None or not file.filename:
+        return jsonify(error="Pilih berkas model (.pt atau .onnx) terlebih dahulu."), 400
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in {".pt", ".onnx"}:
+        return jsonify(error="Hanya berkas model PyTorch (.pt) atau ONNX (.onnx) yang didukung."), 400
+
+    display_name = str(request.form.get("name", "")).strip() or Path(file.filename).stem
+    algo_type = str(request.form.get("algo_type", "Custom Model")).strip() or ("Custom ONNX" if ext == ".onnx" else "Custom CNN")
+    input_size = int(request.form.get("input_size", 224) or 224)
+    raw_idx = str(request.form.get("ai_label_idx", "1")).strip()
+    ai_label_idx = int(raw_idx) if raw_idx.isdigit() else 1
+
+    algo_id = "custom_" + _slugify_algo_id(display_name)
+    if algo_id in BUILTIN_ALGO_IDS:
+        algo_id = algo_id + "_" + str(int(time.time()))[-4:]
+
+    dest_rel = f"models/{algo_id}{ext}"
+    dest = ROOT / dest_rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    file.save(str(dest))
+
+    rec = {
+        "algo_id": algo_id,
+        "name": display_name,
+        "subtitle": f"Local {ext.upper()} ({input_size}×{input_size})",
+        "algo_type": algo_type,
+        "source_kind": "local_onnx" if ext == ".onnx" else "local_pt",
+        "source_ref": dest_rel,
+        "input_size": str(input_size),
+        "ai_label_idx": ai_label_idx,
+        "description": f"Model lokal {dest.name} yang diunggah oleh administrator.",
+    }
+
+    try:
+        _load_single_custom_algorithm(rec, device)
+    except Exception as exc:
+        dest.unlink(missing_ok=True)
+        return jsonify(error=f"Berkas model gagal dimuat/divalidasi: {exc}"), 400
+
+    storage.save_custom_algorithm(**rec)
+    cfg = storage.get_config()
+    enabled = list(cfg.get("enabled_algorithms", []))
+    if algo_id not in enabled:
+        enabled.append(algo_id)
+        storage.update_config({"enabled_algorithms": enabled})
+
+    storage.record_admin_event(session["admin_user"], _client_ip(), "UPLOAD_ALGO", f"Unggah model lokal '{display_name}' ({dest_rel})", "OK")
+    return jsonify(success=True, algo_id=algo_id, message=f"Algoritma '{display_name}' berhasil diunggah dan langsung tersedia untuk pengguna.")
+
+
+@app.delete("/api/admin/algorithms/<algo_id>")
+@admin_required
+def admin_delete_custom_algorithm(algo_id):
+    """Remove a custom-added algorithm (built-in core engines are protected)."""
+    if algo_id in BUILTIN_ALGO_IDS:
+        return jsonify(error="Algoritma bawaan inti tidak dapat dihapus (gunakan sakelar nonaktif saja)."), 400
+    if algo_id not in algorithms_registry:
+        return jsonify(error="Algoritma tidak ditemukan."), 404
+
+    with inference_lock:
+        removed = algorithms_registry.pop(algo_id, None)
+    storage.delete_custom_algorithm(algo_id)
+
+    # Clean up local custom model file/folder when safely inside models/custom_*
+    if removed:
+        ckpt_rel = str(removed.get("checkpoint_path") or "").replace("\\", "/")
+        if ckpt_rel.startswith("models/custom_"):
+            target_path = (ROOT / ckpt_rel).resolve()
+            models_root = (ROOT / "models").resolve()
+            if models_root in target_path.parents and target_path.exists():
+                if target_path.is_dir():
+                    shutil.rmtree(target_path, ignore_errors=True)
+                else:
+                    target_path.unlink(missing_ok=True)
+
+    cfg = storage.get_config()
+    enabled = [x for x in cfg.get("enabled_algorithms", []) if x != algo_id]
+    updates = {"enabled_algorithms": enabled or ["ensemble"]}
+    if cfg.get("default_algorithm") == algo_id:
+        updates["default_algorithm"] = updates["enabled_algorithms"][0]
+    storage.update_config(updates)
+
+    storage.record_admin_event(session["admin_user"], _client_ip(), "DELETE_ALGO", f"Menghapus algoritma kustom '{algo_id}'", "OK")
+    return jsonify(success=True, message=f"Algoritma '{algo_id}' telah dihapus dari sistem.")
 
 
 init_model_on_startup()
