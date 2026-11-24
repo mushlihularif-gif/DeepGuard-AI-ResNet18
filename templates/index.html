@@ -3,291 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepGuard AI — Platform Forensik & Deteksi Citra Generative AI Enterprise</title>
+    <title>DeepGuard AI — Platform Forensik & Verifikasi Citra Digital</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/static/img/logo_deteksi_citra_ai.png">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-    <!-- Header / Navbar -->
-    <header class="navbar">
-        <div class="navbar-container">
+    <header class="topbar">
+        <div class="topbar-inner">
             <a href="index.html" class="brand">
-                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI Logo" class="brand-logo-img">
-                <div class="brand-text">
-                    <span class="brand-title">DeepGuard AI</span>
-                    <span class="brand-pill">FORENSICS</span>
-                </div>
+                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI" class="brand-logo">
+                <span class="brand-name">DeepGuard AI</span>
+                <span class="brand-tag">FORENSICS</span>
             </a>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="index.html" class="active"><i class="fa-solid fa-house"></i> Beranda</a></li>
-                    <li><a href="deteksi.html"><i class="fa-solid fa-crosshairs"></i> Deteksi Citra</a></li>
-                    <li><a href="panduan.html"><i class="fa-solid fa-book-bookmark"></i> Cara Kerja</a></li>
-                    <li><a href="tentang.html"><i class="fa-solid fa-circle-info"></i> Tentang Kami</a></li>
-                    <li><a href="admin.html" class="btn btn-sm btn-admin-nav"><i class="fa-solid fa-sliders"></i> Konsol Admin</a></li>
-                    <li><a href="deteksi.html" class="btn btn-sm nav-cta"><i class="fa-solid fa-bolt"></i> Pindai Citra</a></li>
-                </ul>
+            <nav class="nav-group">
+                <a href="index.html" class="nav-link active">Beranda</a>
+                <a href="deteksi.html" class="nav-link">Deteksi Citra</a>
+                <a href="panduan.html" class="nav-link">Metodologi</a>
+                <a href="tentang.html" class="nav-link">Arsitektur</a>
+                <span class="nav-divider"></span>
+                <a href="admin.html" class="nav-admin">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                    Konsol Admin
+                </a>
             </nav>
         </div>
     </header>
 
-    <!-- Konten Utama -->
-    <main class="main-content">
+    <main class="page-wrap">
 
-        <!-- Hero Section: Dynamic Greeting & Live Scanner -->
-        <section class="hero-box">
-            <div>
-                <div class="status-pill">
-                    <span class="pulse-dot"></span>
-                    <span>NEURAL FORENSIC ENGINE ONLINE • MULTI-ALGORITHM SOC</span>
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div style="display: flex; flex-direction: column; justify-content: center;">
+                <div style="margin-bottom: 14px;">
+                    <span class="chip chip-accent">
+                        <span class="status-dot"></span>
+                        SYSTEM OPERATIONAL &bull; {{ model_info.device_name }}
+                    </span>
                 </div>
 
-                <h1 class="hero-title-main">
-                    Deteksi Keaslian Citra Digital & <span class="gradient-text">Manipulasi Generative AI</span>
+                <h1 class="hero-headline">
+                    Platform Forensik Citra Digital &amp; Deteksi Manipulasi Generative AI
                 </h1>
 
-                <!-- Sapaan Dinamis & Tagline Berganti-ganti -->
-                <div class="dynamic-greeting-wrap">
-                    <span id="dynamicGreeting" class="dynamic-greeting">Verifikasi keaslian citra secara akurat dan real-time</span>
-                    <span class="typing-cursor"></span>
-                </div>
-
-                <p class="hero-desc">
-                    DeepGuard AI adalah platform forensik citra digital tingkat lanjut untuk memverifikasi keaslian foto dan mendeteksi artefak rekayasa Generative AI. Mengintegrasikan arsitektur ResNet-18, Vision Transformer, ELA, dan analisis spektrum frekuensi 2D-FFT.
+                <p class="hero-lead">
+                    Analisis keaslian citra secara terukur dengan arsitektur multi-algoritma (ResNet-18, Vision Transformer ViT-S/16, Error Level Analysis, dan Spektrum 2D-FFT), dilengkapi peta aktivasi Grad-CAM serta verifikasi kredensial kriptografis C2PA.
                 </p>
 
                 <div class="hero-actions">
                     <a href="deteksi.html" class="btn btn-primary">
-                        <i class="fa-solid fa-crosshairs"></i> Buka Laboratorium Deteksi
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        Buka Ruang Deteksi
                     </a>
                     <a href="admin.html" class="btn btn-secondary">
-                        <i class="fa-solid fa-sliders"></i> Buka Konsol Admin & Monitoring
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Konsol Admin &amp; Pelatihan
                     </a>
                 </div>
 
-                <!-- Mini Metric Strip -->
-                <div class="hero-metrics-strip">
-                    <span><i class="fa-solid fa-bolt" style="color: var(--primary);"></i> Inferensi <strong>&sim;35ms</strong></span>
-                    <span><i class="fa-solid fa-shield-check" style="color: var(--real-color);"></i> Privasi <strong>In-Memory</strong></span>
-                    <span><i class="fa-solid fa-microchip" style="color: var(--primary);"></i> Model Utama <strong>ResNet-18</strong></span>
-                    <span><i class="fa-solid fa-cubes" style="color: var(--accent-violet);"></i> Multi-Model <strong>Ensemble</strong></span>
+                <div class="hero-specs">
+                    <span>Pemrosesan: <strong>In-Memory (0 Byte)</strong></span>
+                    <span>C2PA: <strong>Verifikasi Offline</strong></span>
+                    <span>Total Pindai: <strong>{{ live_stats.total_scans }} berkas</strong></span>
                 </div>
             </div>
 
-            <!-- Live Scanner Showcase: Garis Pemindai Bergerak Naik-Turun -->
-            <div class="hero-scanner-card">
-                <div class="scanner-top-telemetry">
-                    <div class="scanner-mode-badge">
-                        <span class="pulse-dot"></span>
-                        <span>SCANNER RADAR AKTIF</span>
+            <!-- Real Live Loaded Engine Status Panel -->
+            <div class="system-card">
+                <div class="system-card-head">
+                    <span>ACTIVE DETECTION ENGINES</span>
+                    <span class="chip chip-real" style="padding: 1px 6px; font-size: 10px;">{{ model_info.enabled_count }} AKTIF</span>
+                </div>
+                <div class="system-card-body">
+                    {% for algo in model_info.available_algorithms %}
+                    <div class="engine-row">
+                        <div>
+                            <div class="engine-row-title">{{ algo.name }}</div>
+                            <div class="engine-row-sub">{{ algo.subtitle }} &bull; {{ algo.type }}</div>
+                        </div>
+                        {% if algo.is_default %}
+                        <span class="chip chip-accent">DEFAULT</span>
+                        {% else %}
+                        <span class="chip chip-real">SIAP</span>
+                        {% endif %}
                     </div>
-                    <span>TENSOR: 224&times;224 RGB / 384&times;384 ViT</span>
-                </div>
-
-                <div class="scanner-viewport">
-                    <!-- Ilustrasi Vektor Forensik Digital -->
-                    <svg class="scanner-image-layer" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <radialGradient id="meshGradient" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.22"/>
-                                <stop offset="100%" stop-color="#05080e" stop-opacity="0.95"/>
-                            </radialGradient>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#meshGradient)"/>
-                        
-                        <!-- Landmark & Wireframe Mesh Forensik -->
-                        <circle cx="200" cy="110" r="62" fill="none" stroke="rgba(0, 212, 255, 0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
-                        <circle cx="200" cy="110" r="38" fill="none" stroke="rgba(129, 140, 248, 0.4)" stroke-width="1"/>
-                        <circle cx="175" cy="98" r="6" fill="rgba(0, 212, 255, 0.25)" stroke="#00d4ff" stroke-width="1.5"/>
-                        <circle cx="225" cy="98" r="6" fill="rgba(0, 212, 255, 0.25)" stroke="#00d4ff" stroke-width="1.5"/>
-                        <path d="M190 115 L200 126 L210 115" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
-                        <path d="M182 142 Q200 156 218 142" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
-                        
-                        <polygon points="175,98 200,80 225,98 200,126" fill="rgba(0, 212, 255, 0.05)" stroke="rgba(0, 212, 255, 0.3)" stroke-width="1"/>
-                        <polygon points="175,98 152,118 182,142 200,126" fill="rgba(129, 140, 248, 0.05)" stroke="rgba(129, 140, 248, 0.25)" stroke-width="1"/>
-                        <polygon points="225,98 248,118 218,142 200,126" fill="rgba(129, 140, 248, 0.05)" stroke="rgba(129, 140, 248, 0.25)" stroke-width="1"/>
-                        
-                        <circle cx="152" cy="70" r="2.5" fill="#00d4ff"/>
-                        <circle cx="248" cy="70" r="2.5" fill="#00d4ff"/>
-                        <circle cx="135" cy="155" r="2.5" fill="#00d4ff"/>
-                        <circle cx="265" cy="155" r="2.5" fill="#00d4ff"/>
-                        <circle cx="200" cy="180" r="2.5" fill="#818cf8"/>
-                    </svg>
-
-                    <!-- Overlay Grid Forensik -->
-                    <div class="scanner-grid-overlay"></div>
-
-                    <!-- Sudut Bidik HUD (Corner Reticles) -->
-                    <div class="hud-corner tl"></div>
-                    <div class="hud-corner tr"></div>
-                    <div class="hud-corner bl"></div>
-                    <div class="hud-corner br"></div>
-
-                    <!-- Center Crosshair -->
-                    <div class="hud-center-cross"></div>
-
-                    <!-- GARIS SCANNING LASER NAIK TURUN (LIVE ANIMATION) -->
-                    <div class="laser-scan-line"></div>
-                    <div class="laser-scan-trail"></div>
-                </div>
-
-                <div class="scanner-bottom-telemetry">
-                    <span class="scanner-status-text" id="scannerStatusReadout">MEMINDAI ARTEFAK SINTETIS...</span>
-                    <span class="scanner-metric-pill" id="scannerCoords">PIPELINE FORENSIK MULTI-ALGORITMA</span>
+                    {% endfor %}
+                    <div style="margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);" class="mono">
+                        <span>THRESHOLD: {{ '%.0f%%'|format(model_info.decision_threshold * 100) }}</span>
+                        <span>DEVICE: {{ model_info.device|upper }}</span>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Benchmark Metrik Utama (Nilai Akurat, Profesional, Bukan Gimmick) -->
-        <section class="grid-4" style="margin-bottom: 28px;">
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
-                <div class="metric-value">98.4%</div>
-                <div class="metric-label">Neural Forensic Accuracy</div>
+        <!-- Real Verified System & Benchmark KPIs (100% Real Data from Reports & Live Server) -->
+        <section class="grid-4" style="margin-bottom: 22px;">
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Akurasi Cross-Domain (ViT-S/16)</span>
+                    <span class="chip" style="padding: 1px 5px; font-size: 10px;">EVAL</span>
+                </div>
+                <div class="kpi-value">{{ '%.1f%%'|format(benchmarks.cross_domain.vit.accuracy) if benchmarks.cross_domain and benchmarks.cross_domain.vit else '—' }}</div>
+                <div class="kpi-foot">Balanced Acc {{ '%.1f%%'|format(benchmarks.cross_domain.vit.balanced_accuracy) if benchmarks.cross_domain and benchmarks.cross_domain.vit else '—' }} &bull; Real FPR {{ '%.1f%%'|format(benchmarks.cross_domain.vit.real_fpr) if benchmarks.cross_domain and benchmarks.cross_domain.vit else '—' }}</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
-                <div class="metric-value">&lt; 35 ms</div>
-                <div class="metric-label">GPU Inference Latency</div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Akurasi Holdout (ResNet-18)</span>
+                    <span class="chip" style="padding: 1px 5px; font-size: 10px;">TEST</span>
+                </div>
+                <div class="kpi-value">{{ '%.1f%%'|format(benchmarks.resnet18_holdout.accuracy) if benchmarks.resnet18_holdout else '—' }}</div>
+                <div class="kpi-foot">Uji {{ benchmarks.resnet18_holdout.n if benchmarks.resnet18_holdout else '—' }} citra &bull; High-Conf {{ '%.1f%%'|format(benchmarks.resnet18_holdout.decided_accuracy) if benchmarks.resnet18_holdout else '—' }}</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fa-solid fa-layer-group"></i></div>
-                <div class="metric-value">4 Engine</div>
-                <div class="metric-label">Arsitektur Multi-Algoritma</div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Akselerator Inferensi</span>
+                    <span class="chip chip-accent" style="padding: 1px 5px; font-size: 10px;">{{ model_info.device|upper }}</span>
+                </div>
+                <div class="kpi-value" style="font-size: 18px; padding-top: 4px;">{{ 'CUDA GPU' if model_info.device == 'cuda' else 'CPU Multi-Thread' }}</div>
+                <div class="kpi-foot">{{ model_info.device_name }}</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                <div class="metric-value">0 Byte</div>
-                <div class="metric-label">Retensi Privasi In-Memory</div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Retensi Unggahan User</span>
+                    <span class="chip chip-real" style="padding: 1px 5px; font-size: 10px;">PRIVASI</span>
+                </div>
+                <div class="kpi-value">0 Byte</div>
+                <div class="kpi-foot">Diproses langsung di memori (RAM)</div>
             </div>
         </section>
 
-        <!-- Ringkasan Nilai Keunggulan (3 Feature Cards) -->
-        <section class="grid-3" style="margin-bottom: 28px;">
-            <div class="feature-card">
-                <div class="feature-icon-box">
-                    <i class="fa-solid fa-network-wired"></i>
-                </div>
-                <h3 class="feature-title">ResNet-18 Deep Residual</h3>
-                <p class="feature-desc">
-                    Arsitektur convolutional neural network 18-layer dengan skip-connections terlatih untuk menangkap jejak artefak mikroskopis difusi citra.
+        <!-- Core Capabilities -->
+        <section class="grid-3" style="margin-bottom: 22px;">
+            <div class="cap-card">
+                <div class="cap-num">01 / MULTI-ALGORITMA</div>
+                <h3 class="cap-title">Perbandingan Lintas Model</h3>
+                <p class="cap-desc">
+                    Pengguna dapat memilih dan membandingkan keluaran ResNet-18, Vision Transformer ViT-S/16, analisis sinyal ELA + 2D-FFT, serta Ensemble Consensus secara berdampingan pada citra yang sama.
                 </p>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon-box">
-                    <i class="fa-solid fa-wave-square"></i>
-                </div>
-                <h3 class="feature-title">Analisis Spektrum 2D-FFT</h3>
-                <p class="feature-desc">
-                    Dekomposisi Fourier dua dimensi untuk mengidentifikasi anomali harmonik frekuensi tinggi yang diproduksi oleh generator laten AI modern.
+            <div class="cap-card">
+                <div class="cap-num">02 / FORENSIK VISUAL NYATA</div>
+                <h3 class="cap-title">Grad-CAM, ELA &amp; 2D-FFT</h3>
+                <p class="cap-desc">
+                    Setiap pemindaian menghasilkan peta aktivasi spasial Grad-CAM, peta selisih kompresi Error Level Analysis, dan spektrum frekuensi 2D-FFT yang dihitung langsung dari piksel citra.
                 </p>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon-box">
-                    <i class="fa-solid fa-lock"></i>
-                </div>
-                <h3 class="feature-title">Keamanan Privasi Zero-Retention</h3>
-                <p class="feature-desc">
-                    Seluruh pemrosesan dilakukan secara in-memory (RAM) lokal pada server. Tidak ada penyimpanan permanen gambar atau pelanggaran kerahasiaan data.
+            <div class="cap-card">
+                <div class="cap-num">03 / MANAJEMEN SOC &amp; TRAINING</div>
+                <h3 class="cap-title">Konsol Admin Terintegrasi</h3>
+                <p class="cap-desc">
+                    Administrator dapat memantau log audit pemindaian, mengkurasi dataset latih/validasi, melatih ulang arsitektur CNN dengan pemantauan kurva loss, dan mengatur algoritma aktif.
                 </p>
             </div>
         </section>
 
-        <!-- Call to Action Banner -->
-        <section class="card" style="text-align: center; padding: 36px 20px; margin-bottom: 24px;">
-            <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
-                Mulai Verifikasi Forensik Citra Anda Sekarang
-            </h2>
-            <p style="font-size: 14px; color: var(--text-secondary); max-width: 540px; margin: 0 auto 20px;">
-                Uji foto atau gambar digital Anda langsung di browser dengan analisis multi-algoritma real-time dan laporan forensik digital lengkap.
-            </p>
-            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                <a href="deteksi.html" class="btn btn-primary" style="padding: 11px 24px;">
-                    <i class="fa-solid fa-crosshairs"></i> Buka Ruang Deteksi Citra
-                </a>
-                <a href="admin.html" class="btn btn-secondary" style="padding: 11px 24px;">
-                    <i class="fa-solid fa-sliders"></i> Panel Admin & Monitoring
-                </a>
+        <!-- Engine Specifications Table -->
+        <section class="panel">
+            <div class="panel-head">
+                <h2 class="panel-title">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+                    Matriks Spesifikasi Mesin Deteksi Terpasang
+                </h2>
+                <a href="deteksi.html" class="btn btn-sm btn-secondary">Uji Coba di Ruang Deteksi &rarr;</a>
+            </div>
+            <div class="table-wrap" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Algoritma</th>
+                            <th>Kategori</th>
+                            <th>Resolusi Input</th>
+                            <th>Grad-CAM</th>
+                            <th>Checkpoint / Integritas</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for algo in model_info.all_algorithms %}
+                        <tr>
+                            <td><strong>{{ algo.name }}</strong></td>
+                            <td class="mono" style="font-size: 11.5px; color: var(--text-secondary);">{{ algo.type }}</td>
+                            <td class="mono" style="font-size: 11.5px;">{% if algo.input_size is integer %}{{ algo.input_size }}×{{ algo.input_size }} px{% else %}{{ algo.input_size }}{% endif %}</td>
+                            <td>
+                                {% if algo.supports_gradcam %}
+                                <span class="chip chip-accent">Didukung</span>
+                                {% else %}
+                                <span style="color: var(--text-muted); font-size: 12px;">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="mono" style="font-size: 11px; color: var(--text-secondary);">{{ algo.checkpoint_path }}{% if algo.sha256 != 'N/A' %} ({{ algo.sha256 }}){% endif %}</td>
+                            <td>
+                                {% if algo.enabled %}
+                                <span class="chip chip-real">Aktif</span>
+                                {% else %}
+                                <span class="chip">Nonaktif</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </section>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
-            <span>Arsitektur: ResNet-18 &bull; Privasi Terjamin &bull; 2026</span>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <span><strong>DeepGuard AI</strong> &bull; Platform Forensik Citra Digital &amp; Verifikasi Generative AI</span>
+            <span class="mono">In-Memory Privacy &bull; C2PA Offline Verification &bull; {{ model_info.device_name }}</span>
         </div>
     </footer>
 
-    <!-- Sapaan Dinamis & Telemetri Real-Time -->
-    <script>
-        const greetings = [
-            "Verifikasi keaslian citra secara akurat dan real-time",
-            "Mendeteksi pola artefak difusi laten dan generator sintetis",
-            "Arsitektur ResNet-18 dengan dekomposisi frekuensi 2D-FFT",
-            "Konsensus evaluasi multi-algoritma enterprise",
-            "Lindungi keamanan visual dari ancaman manipulasi deepfake"
-        ];
-
-        let greetingIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-        const greetingElement = document.getElementById('dynamicGreeting');
-
-        function typeEffect() {
-            const currentText = greetings[greetingIndex];
-            
-            if (isDeleting) {
-                greetingElement.textContent = currentText.substring(0, charIndex - 1);
-                charIndex--;
-            } else {
-                greetingElement.textContent = currentText.substring(0, charIndex + 1);
-                charIndex++;
-            }
-
-            let typeSpeed = isDeleting ? 22 : 48;
-
-            if (!isDeleting && charIndex === currentText.length) {
-                typeSpeed = 2200;
-                isDeleting = true;
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
-                greetingIndex = (greetingIndex + 1) % greetings.length;
-                typeSpeed = 400;
-            }
-
-            setTimeout(typeEffect, typeSpeed);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(typeEffect, 500);
-
-            // Telemetri status scanner bergerak dinamis
-            const statusList = [
-                "EKSTRAKSI RESIDUAL KONVOLUSI RESNET-18",
-                "ANALISIS SPEKTRUM FREKUENSI 2D-FFT",
-                "VALIDASI NOISE SENSOR OPTIK (PRNU)",
-                "EVALUASI KONSENSUS MULTI-ALGORITMA"
-            ];
-            let statusIdx = 0;
-            const statusEl = document.getElementById('scannerStatusReadout');
-            
-            setInterval(() => {
-                statusIdx = (statusIdx + 1) % statusList.length;
-                if (statusEl) {
-                    statusEl.textContent = statusList[statusIdx];
-                }
-            }, 2400);
-        });
-    </script>
 </body>
 </html>

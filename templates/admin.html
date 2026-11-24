@@ -3,653 +3,1018 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Konsol Admin Forensik & Monitoring — DeepGuard AI</title>
+    <title>Konsol Admin &amp; Pelatihan — DeepGuard AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/static/img/logo_deteksi_citra_ai.png">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-    <!-- Header / Navbar -->
-    <header class="navbar">
-        <div class="navbar-container">
+    <header class="topbar">
+        <div class="topbar-inner">
             <a href="index.html" class="brand">
-                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI Logo" class="brand-logo-img">
-                <div class="brand-text">
-                    <span class="brand-title">DeepGuard AI</span>
-                    <span class="brand-pill">ADMIN SOC</span>
-                </div>
+                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI" class="brand-logo">
+                <span class="brand-name">DeepGuard AI</span>
+                <span class="brand-tag">ADMIN SOC</span>
             </a>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="index.html"><i class="fa-solid fa-house"></i> Beranda</a></li>
-                    <li><a href="deteksi.html"><i class="fa-solid fa-crosshairs"></i> Deteksi Citra</a></li>
-                    <li><a href="admin.html" class="active"><i class="fa-solid fa-sliders"></i> Konsol Admin</a></li>
-                    <li><a href="deteksi.html" class="btn btn-sm nav-cta"><i class="fa-solid fa-bolt"></i> Ruang Scanner</a></li>
-                </ul>
+            <nav class="nav-group">
+                <a href="index.html" class="nav-link">Beranda</a>
+                <a href="deteksi.html" class="nav-link">Deteksi Citra</a>
+                <a href="panduan.html" class="nav-link">Metodologi</a>
+                <a href="tentang.html" class="nav-link">Arsitektur</a>
+                <span class="nav-divider"></span>
+                <a href="admin.html" class="nav-admin active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                    Konsol Admin
+                </a>
             </nav>
         </div>
     </header>
 
-    <!-- Konten Utama Admin -->
-    <main class="main-content">
+    <main class="page-wrap">
 
-        <!-- Admin SOC Header Strip -->
-        <div class="page-header" style="margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-                <div>
-                    <div class="status-pill" style="margin-bottom: 8px;">
-                        <span class="pulse-dot"></span>
-                        <span id="socStatusText">SECURITY OPERATIONS CENTER • SYSTEM ONLINE</span>
+        <!-- Admin Header & Live Hardware Telemetry -->
+        <div class="page-head">
+            <div>
+                <div class="page-eyebrow">SECURITY OPERATIONS CENTER &amp; MODEL MANAGEMENT</div>
+                <h1 class="page-title">Konsol Administrasi, Dataset &amp; Pelatihan Model</h1>
+                <p class="page-subtitle">
+                    Pantau log pemindaian secara persisten, kurasi dataset citra, latih ulang model CNN dengan verifikasi kelas ketat, serta atur algoritma yang aktif bagi pengguna.
+                </p>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <span class="chip chip-real"><span class="status-dot"></span> <span id="hdrDevice">{{ model_info.device_name }}</span></span>
+                <span class="chip" id="hdrVram" style="display: none;">VRAM: —</span>
+                <span class="chip" id="hdrUptime">Uptime: 0m</span>
+            </div>
+        </div>
+
+        <!-- 4 Main SOC Tabs -->
+        <div class="tab-strip" role="tablist">
+            <button type="button" class="tab-btn active" data-tab="pane-monitor">1. Pemantauan &amp; Audit Log</button>
+            <button type="button" class="tab-btn" data-tab="pane-dataset">2. Manajemen Dataset</button>
+            <button type="button" class="tab-btn" data-tab="pane-training">3. Studio Pelatihan Model</button>
+            <button type="button" class="tab-btn" data-tab="pane-algorithms">4. Algoritma &amp; Checkpoint</button>
+        </div>
+
+        <!-- =================================================================
+             TAB 1: PEMANTAUAN & AUDIT LOG (PERSISTENT SQLITE)
+             ================================================================= -->
+        <section id="pane-monitor" class="tab-pane active">
+            <div class="grid-4" style="margin-bottom: 18px;">
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Total Pemindaian</span><span class="chip">SQLITE</span></div>
+                    <div class="kpi-value" id="kpiTotalScans">0</div>
+                    <div class="kpi-foot" id="kpiAlgoSummary">Seluruh mesin deteksi</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Terdeteksi Asli (Non-AI)</span><span class="chip chip-real">REAL</span></div>
+                    <div class="kpi-value" id="kpiRealScans" style="color: var(--real);">0</div>
+                    <div class="kpi-foot" id="kpiRealPct">0% dari total</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Terdeteksi Sintetis AI</span><span class="chip chip-fake">AI</span></div>
+                    <div class="kpi-value" id="kpiFakeScans" style="color: var(--fake);">0</div>
+                    <div class="kpi-foot" id="kpiFakePct">0% dari total</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Rata-Rata Latensi</span><span class="chip chip-accent">LIVE</span></div>
+                    <div class="kpi-value" id="kpiAvgLatency">0 ms</div>
+                    <div class="kpi-foot">Diukur langsung pada server</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head" style="flex-wrap: wrap;">
+                    <h2 class="panel-title">Log Audit Pemindaian Citra</h2>
+                    <div class="toolbar-inline">
+                        <input type="text" id="logSearch" class="input" placeholder="Cari berkas / SHA-256..." style="width: 190px; padding: 6px 10px;">
+                        <select id="logVerdictFilter" class="select" style="width: 170px; padding: 6px 10px;">
+                            <option value="ALL">Semua Keputusan</option>
+                            <option value="REAL">NON-AI (REAL)</option>
+                            <option value="FAKE">SINTETIS (AI)</option>
+                            <option value="AI_DISCLOSED">C2PA AI</option>
+                        </select>
+                        <select id="logAlgoFilter" class="select" style="width: 165px; padding: 6px 10px;">
+                            <option value="ALL">Semua Algoritma</option>
+                            <option value="ensemble">Ensemble</option>
+                            <option value="resnet18">ResNet-18</option>
+                            <option value="vit">ViT-S/16</option>
+                            <option value="ela">ELA + 2D-FFT</option>
+                        </select>
+                        <a href="/api/admin/logs/export" class="btn btn-secondary btn-sm">Ekspor CSV</a>
+                        <button type="button" id="btnClearLogs" class="btn btn-danger btn-sm">Bersihkan</button>
                     </div>
-                    <h1 class="page-title">
-                        <i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Pusat Pemantauan & Pelatihan Model
-                    </h1>
-                    <p class="page-desc">
-                        Dashboard manajemen terpadu untuk monitoring telemetri inferensi, manajemen dataset, studio fine-tuning model ResNet-18, dan konfigurasi multi-algoritma.
-                    </p>
                 </div>
-                <div class="admin-hardware-telemetry">
-                    <div><i class="fa-solid fa-microchip" style="color: var(--primary);"></i> Akselerasi: <strong id="adminDeviceText">{{ model_info.device }}</strong></div>
-                    <div><i class="fa-solid fa-clock" style="color: var(--accent-violet);"></i> Uptime: <strong id="adminUptimeText">0m</strong></div>
-                    <div><i class="fa-solid fa-layer-group" style="color: var(--real-color);"></i> Algoritma Aktif: <strong id="adminEngineText">{{ model_info.engine }}</strong></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab Navigation Bar -->
-        <div class="admin-tabs-bar">
-            <button type="button" class="admin-tab-btn active" data-tab="tab-monitoring">
-                <i class="fa-solid fa-chart-line"></i> Pemantauan & Log Telemetri
-            </button>
-            <button type="button" class="admin-tab-btn" data-tab="tab-dataset">
-                <i class="fa-solid fa-folder-tree"></i> Manajemen Dataset
-            </button>
-            <button type="button" class="admin-tab-btn" data-tab="tab-training">
-                <i class="fa-solid fa-brain"></i> Studio Pelatihan Model
-            </button>
-            <button type="button" class="admin-tab-btn" data-tab="tab-config">
-                <i class="fa-solid fa-gear"></i> Konfigurasi Algoritma
-            </button>
-        </div>
-
-        <!-- ===================================================================
-             TAB 1: PEMANTAUAN & LOG TELEMETRI REAL-TIME
-             =================================================================== -->
-        <div id="tab-monitoring" class="admin-tab-content active">
-            <!-- 4 Metric Cards -->
-            <div class="grid-4" style="margin-bottom: 24px;">
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-                    <div class="metric-value" id="statTotalScans">0</div>
-                    <div class="metric-label">Total Pemindaian Citra</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-icon" style="color: var(--real-color);"><i class="fa-solid fa-camera"></i></div>
-                    <div class="metric-value" id="statRealScans" style="color: var(--real-color);">0</div>
-                    <div class="metric-label">Terdeteksi Foto Asli (Real)</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-icon" style="color: var(--fake-color);"><i class="fa-solid fa-robot"></i></div>
-                    <div class="metric-value" id="statFakeScans" style="color: var(--fake-color);">0</div>
-                    <div class="metric-label">Terdeteksi AI Sintetis</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
-                    <div class="metric-value" id="statAvgLatency">0 ms</div>
-                    <div class="metric-label">Rata-Rata Latensi Inferensi</div>
-                </div>
-            </div>
-
-            <!-- Tabel Log Pemindaian Terkini -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="card-header-clean">
-                    <h2 class="card-title"><i class="fa-solid fa-list-check"></i> Aktivitas Pemindaian Citra Terkini</h2>
-                    <span class="badge-accent-subtle">LOG LIVE STREAM</span>
-                </div>
-                <div class="matrix-table-wrap" style="max-height: 480px; overflow-y: auto;">
-                    <table class="matrix-table">
+                <div class="table-wrap" style="border: none; border-radius: 0; max-height: 460px; overflow-y: auto;">
+                    <table class="data-table">
                         <thead>
                             <tr>
                                 <th>Waktu</th>
                                 <th>Nama Berkas</th>
+                                <th>SHA-256</th>
                                 <th>Dimensi</th>
                                 <th>Algoritma</th>
+                                <th>Asli / AI</th>
                                 <th>Keputusan</th>
-                                <th>Keyakinan</th>
                                 <th>Latensi</th>
                             </tr>
                         </thead>
-                        <tbody id="adminRecentScansBody">
-                            <tr>
-                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 36px 0;">
-                                    <i class="fa-solid fa-spinner fa-spin"></i> Memuat log aktivitas...
-                                </td>
-                            </tr>
+                        <tbody id="auditLogBody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 28px;">Memuat log audit...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- ===================================================================
-             TAB 2: MANAJEMEN DATASET (LIHAT & TAMBAH DATASET)
-             =================================================================== -->
-        <div id="tab-dataset" class="admin-tab-content">
-            <!-- Ringkasan Statistik Dataset -->
-            <div class="grid-4" style="margin-bottom: 24px;">
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fa-solid fa-images"></i></div>
-                    <div class="metric-value" id="datasetTotalImages">0</div>
-                    <div class="metric-label">Total Sampel Dataset</div>
+        <!-- =================================================================
+             TAB 2: MANAJEMEN DATASET (CURATION + THUMBNAIL GALLERY + UPLOAD)
+             ================================================================= -->
+        <section id="pane-dataset" class="tab-pane">
+            <div class="grid-4" style="margin-bottom: 18px;">
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Total Citra Dataset</span><span class="chip">DISK</span></div>
+                    <div class="kpi-value" id="dsTotal">0</div>
+                    <div class="kpi-foot" id="dsSplitBreakdown">Train: 0 &bull; Val: 0</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-icon" style="color: var(--real-color);"><i class="fa-solid fa-camera"></i></div>
-                    <div class="metric-value" id="datasetTotalReal" style="color: var(--real-color);">0</div>
-                    <div class="metric-label">Sampel Foto Asli (Train+Val)</div>
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Kelas Foto Asli (REAL=0)</span><span class="chip chip-real">REAL</span></div>
+                    <div class="kpi-value" id="dsRealTotal" style="color: var(--real);">0</div>
+                    <div class="kpi-foot" id="dsRealSub">Train: 0 &bull; Val: 0</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-icon" style="color: var(--fake-color);"><i class="fa-solid fa-robot"></i></div>
-                    <div class="metric-value" id="datasetTotalFake" style="color: var(--fake-color);">0</div>
-                    <div class="metric-label">Sampel AI Sintetis (Train+Val)</div>
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Kelas Sintetis AI (FAKE=1)</span><span class="chip chip-fake">FAKE</span></div>
+                    <div class="kpi-value" id="dsFakeTotal" style="color: var(--fake);">0</div>
+                    <div class="kpi-foot" id="dsFakeSub">Train: 0 &bull; Val: 0</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fa-solid fa-scale-balanced"></i></div>
-                    <div class="metric-value" id="datasetRatioText">50% : 50%</div>
-                    <div class="metric-label">Rasio Keseimbangan Kelas</div>
+                <div class="kpi-card">
+                    <div class="kpi-label"><span>Keseimbangan Kelas</span><span class="chip chip-accent">RATIO</span></div>
+                    <div class="kpi-value" id="dsRatio">—</div>
+                    <div class="kpi-foot">Proporsi REAL : FAKE</div>
                 </div>
             </div>
 
-            <div class="grid-2">
-                <!-- Form Tambah Sampel ke Dataset -->
-                <div class="card">
-                    <div class="card-header-clean">
-                        <h2 class="card-title"><i class="fa-solid fa-cloud-arrow-up"></i> Tambah Citra ke Dataset Latihan</h2>
-                        <span class="badge-accent-subtle">DATASET EXPANDER</span>
+            <div class="grid-2" style="grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); align-items: start;">
+                <!-- Upload Form -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Tambah Sampel Dataset</h2>
+                        <span class="chip">MULTI-UPLOAD</span>
                     </div>
+                    <div class="panel-body">
+                        <div id="dsAlertErr" class="alert alert-error hidden"></div>
+                        <div id="dsAlertOk" class="alert alert-success hidden"></div>
 
-                    <div id="datasetUploadAlert" class="alert-box alert-error hidden"></div>
-                    <div id="datasetUploadSuccess" class="alert-box alert-success hidden"></div>
+                        <div class="field">
+                            <label class="field-label">Target Split</label>
+                            <select id="dsUploadSplit" class="select">
+                                <option value="train" selected>Training Set (dataset/train)</option>
+                                <option value="val">Validation Set (dataset/val)</option>
+                            </select>
+                        </div>
 
-                    <form id="datasetUploadForm" onsubmit="return false;" style="margin-top: 12px;">
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label class="form-label">Kategori / Kelas Citra:</label>
-                            <div class="dataset-class-picker">
-                                <label class="class-radio-label">
-                                    <input type="radio" name="datasetCategory" value="real" checked>
-                                    <span class="class-radio-custom radio-real"><i class="fa-solid fa-camera"></i> Foto Kamera Asli (Real)</span>
+                        <div class="field">
+                            <label class="field-label">Label Kelas (Kontrak Eksplisit)</label>
+                            <div class="seg-radio-group">
+                                <label class="seg-radio">
+                                    <input type="radio" name="dsCategory" value="real" checked>
+                                    <span class="opt-real">Foto Asli (REAL = 0)</span>
                                 </label>
-                                <label class="class-radio-label">
-                                    <input type="radio" name="datasetCategory" value="fake">
-                                    <span class="class-radio-custom radio-fake"><i class="fa-solid fa-robot"></i> Citra Generative AI (Fake)</span>
+                                <label class="seg-radio">
+                                    <input type="radio" name="dsCategory" value="fake">
+                                    <span class="opt-fake">Sintetis AI (FAKE = 1)</span>
                                 </label>
                             </div>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 16px;">
-                            <label class="form-label">Pilih Berkas Gambar (JPG / PNG):</label>
-                            <input type="file" id="datasetFileInput" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="form-control-file">
+                        <div class="field">
+                            <label class="field-label">Pilih Satu atau Banyak Berkas (JPG / PNG)</label>
+                            <input type="file" id="dsFileInput" class="input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
                         </div>
 
                         <button type="button" id="btnUploadDataset" class="btn btn-primary" style="width: 100%;">
-                            <i class="fa-solid fa-plus"></i> Simpan Sampel ke Direktori Dataset
+                            Unggah ke Direktori Dataset
                         </button>
-                    </form>
+                    </div>
                 </div>
 
-                <!-- Explorer Sampel Dataset Terkini -->
-                <div class="card">
-                    <div class="card-header-clean">
-                        <h2 class="card-title"><i class="fa-solid fa-eye"></i> Sampel Citra pada Direktori Latihan</h2>
-                        <span class="badge-accent-subtle">EXPLORER</span>
+                <!-- Visual Thumbnail Gallery -->
+                <div class="panel">
+                    <div class="panel-head" style="flex-wrap: wrap;">
+                        <h2 class="panel-title">Galeri Kurasi Dataset</h2>
+                        <div class="toolbar-inline">
+                            <select id="dsFilterSplit" class="select" style="width: 120px; padding: 5px 8px;">
+                                <option value="all">Semua Split</option>
+                                <option value="train">Train</option>
+                                <option value="val">Validation</option>
+                            </select>
+                            <select id="dsFilterCat" class="select" style="width: 125px; padding: 5px 8px;">
+                                <option value="all">Semua Kelas</option>
+                                <option value="real">REAL (Asli)</option>
+                                <option value="fake">FAKE (AI)</option>
+                            </select>
+                        </div>
                     </div>
-
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-                        Pratinjau berkas citra yang aktif digunakan oleh data loader ResNet-18:
-                    </div>
-
-                    <div class="dataset-samples-preview-grid" id="datasetPreviewGrid">
-                        <!-- Loaded dynamically -->
-                        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 24px 0;">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Memuat daftar berkas dataset...
+                    <div class="panel-body">
+                        <div id="datasetGallery" class="dataset-grid">
+                            <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 32px;">Memuat galeri dataset...</div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- ===================================================================
-             TAB 3: STUDIO PELATIHAN MODEL (FINE-TUNING RESNET-18)
-             =================================================================== -->
-        <div id="tab-training" class="admin-tab-content">
-            <div class="grid-2">
-                <!-- Form Konfigurasi Training -->
-                <div class="card">
-                    <div class="card-header-clean">
-                        <h2 class="card-title"><i class="fa-solid fa-sliders"></i> Konfigurasi Hyperparameter Pelatihan</h2>
-                        <span class="badge-accent-subtle">RESNET-18 FINE-TUNING</span>
+        <!-- =================================================================
+             TAB 3: STUDIO PELATIHAN MODEL (SAFE PYTORCH TRAINING + LIVE CURVE)
+             ================================================================= -->
+        <section id="pane-training" class="tab-pane">
+            <div class="grid-2" style="grid-template-columns: minmax(0, 4.5fr) minmax(0, 7.5fr); align-items: start; margin-bottom: 18px;">
+
+                <!-- Training Hyperparameter Form -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Konfigurasi Pelatihan Model</h2>
+                        <span class="chip chip-accent">PYTORCH {{ model_info.device|upper }}</span>
                     </div>
+                    <div class="panel-body">
+                        <div id="trainAlert" class="alert alert-error hidden"></div>
 
-                    <div id="trainErrorAlert" class="alert-box alert-error hidden"></div>
-
-                    <form id="trainForm" onsubmit="return false;" style="margin-top: 14px;">
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label class="form-label">Arsitektur Target:</label>
-                            <input type="text" class="form-input" value="ResNet-18 (Deep Residual Convolutional)" readonly style="opacity: 0.8; cursor: not-allowed;">
+                        <div class="field">
+                            <label class="field-label">Arsitektur CNN Target</label>
+                            <select id="trainArch" class="select">
+                                <option value="resnet18">ResNet-18 (Residual CNN 18-Layer)</option>
+                                <option value="mobilenet_v3_small">MobileNetV3-Small (Ringan &amp; Cepat)</option>
+                                <option value="efficientnet_b0">EfficientNet-B0 (Compound Scaling)</option>
+                            </select>
                         </div>
 
-                        <div class="form-row-2" style="display: flex; gap: 12px; margin-bottom: 14px;">
-                            <div class="form-group" style="flex: 1;">
-                                <label class="form-label">Jumlah Epoch:</label>
-                                <input type="number" id="trainEpochs" class="form-input" value="5" min="1" max="50">
+                        <div class="field" id="baseModeWrap">
+                            <label class="field-label">Inisialisasi Bobot</label>
+                            <select id="trainBaseMode" class="select">
+                                <option value="finetune_active">Fine-Tune dari Checkpoint ResNet-18 Aktif</option>
+                                <option value="pretrained">Pretrained ImageNet (Mulai Baru)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid-2" style="gap: 10px;">
+                            <div class="field">
+                                <label class="field-label">Jumlah Epoch (1–30)</label>
+                                <input type="number" id="trainEpochs" class="input mono" value="5" min="1" max="30">
                             </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label class="form-label">Batch Size:</label>
-                                <select id="trainBatchSize" class="form-input">
-                                    <option value="8">8 Sampel</option>
-                                    <option value="16" selected>16 Sampel</option>
-                                    <option value="32">32 Sampel</option>
+                            <div class="field">
+                                <label class="field-label">Batch Size</label>
+                                <select id="trainBatchSize" class="select mono">
+                                    <option value="8">8</option>
+                                    <option value="16" selected>16</option>
+                                    <option value="32">32</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label class="form-label">Learning Rate (AdamW Optimizer):</label>
-                            <input type="number" id="trainLr" class="form-input" value="0.0001" step="0.00005" min="0.00001">
+                        <div class="field">
+                            <label class="field-label">Learning Rate (AdamW + CosineAnnealing)</label>
+                            <input type="number" id="trainLr" class="input mono" value="0.0001" step="0.00005" min="0.000001">
                         </div>
 
-                        <div class="action-buttons">
-                            <button type="button" id="btnStartTraining" class="btn btn-primary" style="flex: 1;">
-                                <i class="fa-solid fa-play"></i> Mulai Pelatihan Model
-                            </button>
+                        <div class="field" style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer;">
+                                <input type="checkbox" id="trainAugment" checked>
+                                <span>Aktifkan augmentasi kompresi JPEG &amp; flip horizontal</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer;">
+                                <input type="checkbox" id="trainFreeze">
+                                <span>Freeze backbone (latih head klasifikasi saja — lebih cepat)</span>
+                            </label>
                         </div>
-                    </form>
+
+                        <div class="action-row">
+                            <button type="button" id="btnStartTrain" class="btn btn-primary" style="flex: 1;">Mulai Pelatihan</button>
+                            <button type="button" id="btnStopTrain" class="btn btn-danger" disabled>Hentikan</button>
+                        </div>
+                        <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 10px;">
+                            Checkpoint disimpan terpisah di <code>models/trained_*.pt</code> dengan pemetaan eksplisit <code>REAL=0, FAKE=1</code> sehingga checkpoint utama tetap aman.
+                        </p>
+                    </div>
                 </div>
 
-                <!-- Live Training Telemetry & Logs -->
-                <div class="card">
-                    <div class="card-header-clean">
-                        <h2 class="card-title"><i class="fa-solid fa-terminal"></i> Status & Telemetri Pelatihan Live</h2>
-                        <span id="trainStatusBadge" class="indicator-badge badge-pass" style="background: rgba(0, 212, 255, 0.15); color: var(--primary);">IDLE</span>
+                <!-- Live Telemetry, SVG Curve & Console Log -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Telemetri Pelatihan Real-Time</h2>
+                        <span id="trainStatusChip" class="chip">IDLE</span>
                     </div>
+                    <div class="panel-body">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+                            <span id="trainMsg" style="color: var(--text-secondary);">Siap menjalankan pelatihan model.</span>
+                            <span id="trainPct" class="mono" style="color: var(--accent); font-weight: 700;">0%</span>
+                        </div>
+                        <div class="progress-track" style="margin-bottom: 14px;">
+                            <div id="trainProgressFill" class="progress-fill"></div>
+                        </div>
 
-                    <!-- Progress Bar Pelatihan -->
-                    <div style="margin: 14px 0 16px 0;">
-                        <div style="display: flex; justify-content: space-between; font-weight: 700; font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px;">
-                            <span id="trainMessageText">Siap untuk pelatihan.</span>
-                            <span id="trainProgressPctText" style="color: var(--primary);">0%</span>
+                        <div class="grid-4" style="margin-bottom: 14px; gap: 10px;">
+                            <div class="meta-cell">
+                                <div class="meta-cell-k">Epoch</div>
+                                <div class="meta-cell-v" id="trEpochVal">0 / 0</div>
+                            </div>
+                            <div class="meta-cell">
+                                <div class="meta-cell-k">Train Loss</div>
+                                <div class="meta-cell-v" id="trLossVal" style="color: var(--warn);">0.0000</div>
+                            </div>
+                            <div class="meta-cell">
+                                <div class="meta-cell-k">Train Acc</div>
+                                <div class="meta-cell-v" id="trAccVal">0.0%</div>
+                            </div>
+                            <div class="meta-cell">
+                                <div class="meta-cell-k">Val Acc (Best)</div>
+                                <div class="meta-cell-v" id="trValAccVal" style="color: var(--real);">0.0%</div>
+                            </div>
                         </div>
-                        <div class="progress-bar-track" style="height: 10px;">
-                            <div id="trainProgressBarFill" class="progress-bar-fill" style="width: 0%;"></div>
-                        </div>
-                    </div>
 
-                    <!-- Metric Strip Live Training -->
-                    <div class="training-metrics-strip">
-                        <div class="train-mini-metric">
-                            <span>Epoch Berjalan</span>
-                            <strong id="trainEpochCount">0 / 0</strong>
+                        <!-- Real Live SVG Accuracy / Loss Chart -->
+                        <div class="chart-box">
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 6px;" class="mono">
+                                <span>KURVA AKURASI PER EPOCH (0% – 100%)</span>
+                                <span><span style="color: var(--accent);">■</span> Train Acc &nbsp; <span style="color: var(--real);">■</span> Val Acc</span>
+                            </div>
+                            <svg id="trainChartSvg" viewBox="0 0 500 120" style="width: 100%; height: 120px; display: block;">
+                                <line x1="30" y1="10" x2="490" y2="10" stroke="#1e2736" stroke-dasharray="3 3"/>
+                                <line x1="30" y1="60" x2="490" y2="60" stroke="#1e2736" stroke-dasharray="3 3"/>
+                                <line x1="30" y1="110" x2="490" y2="110" stroke="#1e2736"/>
+                                <text x="2" y="14" fill="#64748b" font-size="9" font-family="JetBrains Mono">100%</text>
+                                <text x="8" y="64" fill="#64748b" font-size="9" font-family="JetBrains Mono">50%</text>
+                                <text x="14" y="113" fill="#64748b" font-size="9" font-family="JetBrains Mono">0%</text>
+                                <polyline id="lineTrainAcc" fill="none" stroke="#38bdf8" stroke-width="2" points=""/>
+                                <polyline id="lineValAcc" fill="none" stroke="#10b981" stroke-width="2" points=""/>
+                            </svg>
                         </div>
-                        <div class="train-mini-metric">
-                            <span>Current Loss</span>
-                            <strong id="trainLossValue" style="color: var(--warn-color);">0.0000</strong>
-                        </div>
-                        <div class="train-mini-metric">
-                            <span>Akurasi Latihan</span>
-                            <strong id="trainAccuracyValue" style="color: var(--real-color);">0.0%</strong>
-                        </div>
-                    </div>
 
-                    <!-- Terminal Log Window -->
-                    <div class="admin-terminal-log" id="trainTerminalLog">
-                        <div style="color: var(--text-muted);">[SYSTEM] Terminal pelatihan siap. Menunggu perintah mulai...</div>
+                        <div id="trainTerminal" class="terminal-box">[SYSTEM] Menunggu instruksi pelatihan...</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- ===================================================================
-             TAB 4: PENGATURAN ALGORITMA & MODEL WEIGHTS
-             =================================================================== -->
-        <div id="tab-config" class="admin-tab-content">
-            <div class="grid-2">
-                <!-- Pengaturan Default Engine -->
-                <div class="card">
-                    <div class="card-header-clean">
-                        <h2 class="card-title"><i class="fa-solid fa-microchip"></i> Pengaturan Algoritma Utama</h2>
-                        <span class="badge-accent-subtle">SYSTEM CONFIG</span>
+            <!-- Training Run History Table -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2 class="panel-title">Riwayat Sesi Pelatihan</h2>
+                    <span class="chip">PERSISTENT LOG</span>
+                </div>
+                <div class="table-wrap" style="border: none; border-radius: 0;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Waktu</th>
+                                <th>Arsitektur</th>
+                                <th>Data (Tr/Va)</th>
+                                <th>Epochs</th>
+                                <th>Best Val Acc</th>
+                                <th>Status</th>
+                                <th>Checkpoint &amp; Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trainRunsBody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">Belum ada riwayat pelatihan.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             TAB 4: PENGATURAN ALGORITMA, THRESHOLD & MANAJEMEN CHECKPOINT
+             ================================================================= -->
+        <section id="pane-algorithms" class="tab-pane">
+            <div class="grid-2" style="align-items: start;">
+                <!-- Algorithm Enable/Disable & Threshold Config -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Kontrol Algoritma &amp; Ambang Keputusan</h2>
+                        <span class="chip chip-accent">LIVE SYNC KE USER</span>
                     </div>
+                    <div class="panel-body">
+                        <div id="cfgAlertErr" class="alert alert-error hidden"></div>
+                        <div id="cfgAlertOk" class="alert alert-success hidden"></div>
 
-                    <div id="configSuccessAlert" class="alert-box alert-success hidden"></div>
-
-                    <form id="configForm" onsubmit="return false;" style="margin-top: 14px;">
-                        <div class="form-group" style="margin-bottom: 16px;">
-                            <label class="form-label">Pilih Algoritma Default Server:</label>
-                            <select id="configDefaultEngine" class="form-input">
-                                <option value="resnet18" selected>ResNet-18 (Deep Residual Network) — Proyek Utama</option>
-                                <option value="community_forensics">Vision Transformer (ViT-S/16) — Attention Based</option>
-                            </select>
+                        <div class="field">
+                            <label class="field-label">Algoritma yang Disediakan di Halaman Deteksi User</label>
+                            <div id="algoTogglesList"></div>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label class="form-label">Ambang Batas Keputusan Biner (Threshold):</label>
-                            <input type="text" class="form-input" value="0.50 (Probabilitas Real vs Fake Seimbang)" readonly style="opacity: 0.8; cursor: not-allowed;">
+                        <div class="grid-2" style="gap: 12px;">
+                            <div class="field">
+                                <label class="field-label">Algoritma Default User</label>
+                                <select id="cfgDefaultAlgo" class="select"></select>
+                            </div>
+                            <div class="field">
+                                <label class="field-label">Ambang Keputusan AI (0.10 – 0.90)</label>
+                                <input type="number" id="cfgThreshold" class="input mono" min="0.10" max="0.90" step="0.05" value="0.50">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">Bobot Fusi Ensemble (ViT / ResNet-18 / ELA+FFT)</label>
+                            <div class="grid-3" style="gap: 8px;">
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted);">ViT-S/16</span>
+                                    <input type="number" id="wVit" class="input mono" min="0" max="1" step="0.05" value="0.55">
+                                </div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted);">ResNet-18</span>
+                                    <input type="number" id="wResnet" class="input mono" min="0" max="1" step="0.05" value="0.30">
+                                </div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted);">ELA+2D-FFT</span>
+                                    <input type="number" id="wEla" class="input mono" min="0" max="1" step="0.05" value="0.15">
+                                </div>
+                            </div>
                         </div>
 
                         <button type="button" id="btnSaveConfig" class="btn btn-primary" style="width: 100%;">
-                            <i class="fa-solid fa-floppy-disk"></i> Simpan Konfigurasi Algoritma
+                            Simpan &amp; Terapkan Konfigurasi Sistem
                         </button>
-                    </form>
+                    </div>
                 </div>
 
-                <!-- Model Information & Registry -->
-                <div class="card">
-                    <div class="card-header-clean">
-                        <h2 class="card-title"><i class="fa-solid fa-database"></i> Registry Checkpoint Model</h2>
-                        <span class="badge-accent-subtle">WEIGHTS INTEGRITY</span>
+                <!-- Checkpoint Registry & Hot-Swap Activation -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Manajemen Berkas Checkpoint (.pt)</h2>
+                        <span class="chip">HOT-SWAP</span>
                     </div>
-
-                    <div class="models-registry-list" id="modelsRegistryList">
-                        <!-- Loaded dynamically -->
+                    <div class="panel-body" style="padding: 0;">
+                        <div id="ckptAlert" class="alert alert-success hidden" style="margin: 14px 16px 0;"></div>
+                        <div class="table-wrap" style="border: none; border-radius: 0;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Berkas Checkpoint</th>
+                                        <th>Ukuran</th>
+                                        <th>Diubah</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="checkpointsBody">
+                                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">Memuat daftar checkpoint...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; SOC Management Console</span>
-            <span>Kontrol Penuh Admin & Pelatihan &bull; 2026</span>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <span><strong>DeepGuard AI</strong> &bull; Security Operations Center &amp; Model Studio</span>
+            <span class="mono">Persistent SQLite Audit &bull; Explicit REAL=0 / FAKE=1 Contract</span>
         </div>
     </footer>
 
-    <!-- Logika Interaktif Admin Console -->
     <script>
-        // Tab Switching Logic
-        document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        // Tab Switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
                 btn.classList.add('active');
-                const targetId = btn.getAttribute('data-tab');
-                const targetContent = document.getElementById(targetId);
-                if (targetContent) targetContent.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'pane-dataset') loadDatasetGallery();
+                if (btn.dataset.tab === 'pane-training') { loadTrainRuns(); pollTrainStatus(); }
+                if (btn.dataset.tab === 'pane-algorithms') loadModelsConfig();
             });
         });
 
-        // Polling Admin Telemetry & Statistics
-        function refreshAdminStats() {
-            fetch('/api/admin/stats')
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById('statTotalScans').textContent = data.total_scans;
-                    document.getElementById('statRealScans').textContent = data.real_scans;
-                    document.getElementById('statFakeScans').textContent = data.fake_scans;
-                    document.getElementById('statAvgLatency').textContent = data.avg_latency_ms + ' ms';
-                    document.getElementById('adminDeviceText').textContent = data.device;
-                    document.getElementById('adminEngineText').textContent = data.active_engine.toUpperCase();
+        // Toggle baseMode visibility when switching architecture
+        document.getElementById('trainArch').addEventListener('change', (e) => {
+            document.getElementById('baseModeWrap').style.display = e.target.value === 'resnet18' ? 'block' : 'none';
+        });
 
-                    const uptimeMins = Math.floor(data.uptime_seconds / 60);
-                    document.getElementById('adminUptimeText').textContent = uptimeMins + 'm ' + (data.uptime_seconds % 60) + 's';
+        // 1. Monitoring & Audit Logs
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/admin/stats');
+                const data = await res.json();
+                const s = data.scan_stats || {};
+                const total = s.total_scans || 0;
+                const real = s.real_scans || 0;
+                const fake = s.fake_scans || 0;
 
-                    if (data.dataset) {
-                        const ds = data.dataset;
-                        document.getElementById('datasetTotalImages').textContent = ds.total_images;
-                        document.getElementById('datasetTotalReal').textContent = ds.total_real;
-                        document.getElementById('datasetTotalFake').textContent = ds.total_fake;
-                        if (ds.total_images > 0) {
-                            const realPct = Math.round((ds.total_real / ds.total_images) * 100);
-                            const fakePct = 100 - realPct;
-                            document.getElementById('datasetRatioText').textContent = realPct + '% : ' + fakePct + '%';
-                        }
-                    }
+                document.getElementById('kpiTotalScans').textContent = total;
+                document.getElementById('kpiRealScans').textContent = real;
+                document.getElementById('kpiFakeScans').textContent = fake;
+                document.getElementById('kpiAvgLatency').textContent = (s.avg_latency_ms || 0) + ' ms';
+                document.getElementById('kpiRealPct').textContent = total ? Math.round((real / total) * 100) + '% dari total' : 'Belum ada data';
+                document.getElementById('kpiFakePct').textContent = total ? Math.round((fake / total) * 100) + '% dari total' : 'Belum ada data';
 
-                    renderRecentScans(data.recent_scans || []);
-                    renderModelsRegistry(data.algorithms || []);
-                })
-                .catch(err => console.error('Error fetching admin stats:', err));
+                const upM = Math.floor((data.uptime_seconds || 0) / 60);
+                const upS = (data.uptime_seconds || 0) % 60;
+                document.getElementById('hdrUptime').textContent = 'Uptime: ' + upM + 'm ' + upS + 's';
+                if (data.device_name) document.getElementById('hdrDevice').textContent = data.device_name;
+                if (data.vram) {
+                    const vEl = document.getElementById('hdrVram');
+                    vEl.textContent = 'VRAM: ' + data.vram;
+                    vEl.style.display = 'inline-flex';
+                }
+
+                // Update dataset KPIs
+                if (data.dataset) updateDatasetKpis(data.dataset);
+            } catch (e) {
+                console.error(e);
+            }
         }
 
-        function renderRecentScans(scans) {
-            const tbody = document.getElementById('adminRecentScansBody');
-            if (!tbody) return;
-            if (scans.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px 0;">Belum ada aktivitas pemindaian citra yang tercatat.</td></tr>';
+        async function loadAuditLogs() {
+            const q = new URLSearchParams({
+                verdict: document.getElementById('logVerdictFilter').value,
+                algorithm: document.getElementById('logAlgoFilter').value,
+                search: document.getElementById('logSearch').value.trim(),
+                limit: 60
+            });
+            try {
+                const res = await fetch('/api/admin/logs?' + q.toString());
+                const data = await res.json();
+                const tbody = document.getElementById('auditLogBody');
+                tbody.innerHTML = '';
+                const rows = data.logs || [];
+                if (!rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 28px;">Belum ada rekaman pemindaian yang cocok dengan filter.</td></tr>';
+                    return;
+                }
+                rows.forEach(r => {
+                    const tr = document.createElement('tr');
+                    const isReal = r.verdict === 'REAL';
+                    const cells = [
+                        { text: r.created_at, cls: 'mono', style: 'font-size:11px;color:var(--text-secondary);white-space:nowrap;' },
+                        { text: r.filename, style: 'font-weight:600;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' },
+                        { text: (r.file_sha256 || '').slice(0, 10), cls: 'mono', style: 'font-size:11px;color:var(--text-muted);' },
+                        { text: r.dimensions, cls: 'mono', style: 'font-size:11px;color:var(--text-secondary);' },
+                        { text: r.algorithm_name || r.algorithm, cls: 'mono', style: 'font-size:11px;' },
+                        { text: (r.prob_real * 100).toFixed(1) + '% / ' + (r.prob_fake * 100).toFixed(1) + '%', cls: 'mono', style: 'font-size:11.5px;' }
+                    ];
+                    cells.forEach(c => {
+                        const td = document.createElement('td');
+                        if (c.cls) td.className = c.cls;
+                        if (c.style) td.style.cssText = c.style;
+                        td.textContent = c.text;
+                        tr.appendChild(td);
+                    });
+
+                    const tdV = document.createElement('td');
+                    const chip = document.createElement('span');
+                    chip.className = 'chip ' + (isReal ? 'chip-real' : 'chip-fake');
+                    chip.textContent = r.verdict;
+                    tdV.appendChild(chip);
+                    tr.appendChild(tdV);
+
+                    const tdMs = document.createElement('td');
+                    tdMs.className = 'mono';
+                    tdMs.style.fontSize = '11.5px';
+                    tdMs.textContent = r.latency_ms + ' ms';
+                    tr.appendChild(tdMs);
+
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        ['logVerdictFilter', 'logAlgoFilter'].forEach(id => document.getElementById(id).addEventListener('change', loadAuditLogs));
+        document.getElementById('logSearch').addEventListener('input', loadAuditLogs);
+        document.getElementById('btnClearLogs').addEventListener('click', async () => {
+            if (!confirm('Hapus seluruh riwayat log audit pemindaian?')) return;
+            await fetch('/api/admin/logs', { method: 'DELETE' });
+            loadStats();
+            loadAuditLogs();
+        });
+
+        // 2. Dataset Curation & Visual Gallery
+        function updateDatasetKpis(ds) {
+            document.getElementById('dsTotal').textContent = ds.total_images;
+            document.getElementById('dsSplitBreakdown').textContent = 'Train: ' + (ds.train_real + ds.train_fake) + ' · Val: ' + (ds.val_real + ds.val_fake);
+            document.getElementById('dsRealTotal').textContent = ds.total_real;
+            document.getElementById('dsRealSub').textContent = 'Train: ' + ds.train_real + ' · Val: ' + ds.val_real;
+            document.getElementById('dsFakeTotal').textContent = ds.total_fake;
+            document.getElementById('dsFakeSub').textContent = 'Train: ' + ds.train_fake + ' · Val: ' + ds.val_fake;
+            if (ds.total_images > 0) {
+                const rPct = Math.round((ds.total_real / ds.total_images) * 100);
+                document.getElementById('dsRatio').textContent = rPct + '% : ' + (100 - rPct) + '%';
+            } else {
+                document.getElementById('dsRatio').textContent = '0% : 0%';
+            }
+        }
+
+        async function loadDatasetGallery() {
+            const sp = document.getElementById('dsFilterSplit').value;
+            const cat = document.getElementById('dsFilterCat').value;
+            try {
+                const res = await fetch('/api/admin/dataset/list?split=' + sp + '&category=' + cat);
+                const data = await res.json();
+                if (data.counts) updateDatasetKpis(data.counts);
+                const grid = document.getElementById('datasetGallery');
+                grid.innerHTML = '';
+                const items = data.items || [];
+                if (!items.length) {
+                    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px;">Tidak ada berkas pada filter ini.</div>';
+                    return;
+                }
+                items.forEach(it => {
+                    const card = document.createElement('div');
+                    card.className = 'ds-card';
+
+                    const tw = document.createElement('div');
+                    tw.className = 'ds-thumb-wrap';
+
+                    const img = document.createElement('img');
+                    img.className = 'ds-thumb';
+                    img.loading = 'lazy';
+                    img.src = it.url;
+                    img.alt = it.name;
+
+                    const badge = document.createElement('span');
+                    badge.className = 'ds-thumb-badge ' + it.category;
+                    badge.textContent = it.category === 'real' ? 'REAL' : 'AI';
+
+                    const del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'ds-delete-btn';
+                    del.title = 'Hapus sampel ini';
+                    del.textContent = '×';
+                    del.addEventListener('click', async () => {
+                        if (!confirm('Hapus ' + it.name + ' dari dataset/' + it.split + '/' + it.category + '?')) return;
+                        const r = await fetch('/api/admin/dataset/item', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ split: it.split, category: it.category, filename: it.name })
+                        });
+                        if (r.ok) loadDatasetGallery();
+                    });
+
+                    tw.append(img, badge, del);
+
+                    const meta = document.createElement('div');
+                    meta.className = 'ds-meta';
+                    const nm = document.createElement('div');
+                    nm.className = 'ds-name';
+                    nm.textContent = it.name;
+                    nm.title = it.name;
+                    const sub = document.createElement('div');
+                    sub.className = 'ds-sub';
+                    sub.textContent = it.split.toUpperCase() + ' · ' + it.size_kb + ' KB';
+                    meta.append(nm, sub);
+
+                    card.append(tw, meta);
+                    grid.appendChild(card);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        document.getElementById('dsFilterSplit').addEventListener('change', loadDatasetGallery);
+        document.getElementById('dsFilterCat').addEventListener('change', loadDatasetGallery);
+
+        document.getElementById('btnUploadDataset').addEventListener('click', async () => {
+            const input = document.getElementById('dsFileInput');
+            const errEl = document.getElementById('dsAlertErr');
+            const okEl = document.getElementById('dsAlertOk');
+            errEl.classList.add('hidden');
+            okEl.classList.add('hidden');
+
+            if (!input.files || !input.files.length) {
+                errEl.textContent = 'Pilih minimal satu berkas JPG/PNG terlebih dahulu.';
+                errEl.classList.remove('hidden');
                 return;
             }
+            const fd = new FormData();
+            Array.from(input.files).forEach(f => fd.append('images', f));
+            fd.append('split', document.getElementById('dsUploadSplit').value);
+            fd.append('category', document.querySelector('input[name="dsCategory"]:checked').value);
 
+            const btn = document.getElementById('btnUploadDataset');
+            btn.disabled = true;
+            btn.textContent = 'Mengunggah...';
+            try {
+                const res = await fetch('/api/admin/dataset/upload', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Gagal mengunggah');
+                okEl.textContent = data.message;
+                okEl.classList.remove('hidden');
+                input.value = '';
+                loadDatasetGallery();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Unggah ke Direktori Dataset';
+            }
+        });
+
+        // 3. Safe PyTorch Training Studio
+        let trainPoller = null;
+
+        function renderTrainChart(history) {
+            const trLine = document.getElementById('lineTrainAcc');
+            const vaLine = document.getElementById('lineValAcc');
+            if (!history || !history.length) {
+                trLine.setAttribute('points', '');
+                vaLine.setAttribute('points', '');
+                return;
+            }
+            const n = history.length;
+            const xStep = n > 1 ? 450 / (n - 1) : 0;
+            const mapPt = (idx, acc) => {
+                const x = (35 + idx * xStep).toFixed(1);
+                const y = (110 - (Math.max(0, Math.min(100, acc)) / 100) * 100).toFixed(1);
+                return x + ',' + y;
+            };
+            trLine.setAttribute('points', history.map((h, i) => mapPt(i, h.train_acc)).join(' '));
+            vaLine.setAttribute('points', history.map((h, i) => mapPt(i, h.val_acc)).join(' '));
+        }
+
+        async function pollTrainStatus() {
+            try {
+                const res = await fetch('/api/admin/train/status');
+                const st = await res.json();
+                const chip = document.getElementById('trainStatusChip');
+                chip.textContent = st.status;
+                chip.className = 'chip ' + (
+                    st.status === 'TRAINING' ? 'chip-accent' :
+                    st.status === 'COMPLETED' ? 'chip-real' :
+                    st.status === 'ERROR' || st.status === 'CANCELLED' ? 'chip-fake' : ''
+                );
+
+                document.getElementById('trainMsg').textContent = st.message || '';
+                document.getElementById('trainPct').textContent = (st.progress || 0) + '%';
+                document.getElementById('trainProgressFill').style.width = (st.progress || 0) + '%';
+                document.getElementById('trEpochVal').textContent = (st.epoch || 0) + ' / ' + (st.total_epochs || 0);
+                document.getElementById('trLossVal').textContent = Number(st.train_loss || 0).toFixed(4);
+                document.getElementById('trAccVal').textContent = Number(st.train_acc || 0).toFixed(1) + '%';
+                document.getElementById('trValAccVal').textContent = Number(st.val_acc || 0).toFixed(1) + '% (' + Number(st.best_val_acc || 0).toFixed(1) + '%)';
+
+                renderTrainChart(st.history || []);
+
+                const term = document.getElementById('trainTerminal');
+                if (st.logs && st.logs.length) {
+                    term.innerHTML = '';
+                    st.logs.forEach(line => {
+                        const d = document.createElement('div');
+                        d.textContent = line;
+                        term.appendChild(d);
+                    });
+                    term.scrollTop = term.scrollHeight;
+                }
+
+                const running = st.status === 'TRAINING';
+                document.getElementById('btnStartTrain').disabled = running;
+                document.getElementById('btnStopTrain').disabled = !running;
+
+                if (!running && trainPoller) {
+                    clearInterval(trainPoller);
+                    trainPoller = null;
+                    loadTrainRuns();
+                    loadModelsConfig();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        document.getElementById('btnStartTrain').addEventListener('click', async () => {
+            const alertEl = document.getElementById('trainAlert');
+            alertEl.classList.add('hidden');
+            const body = {
+                architecture: document.getElementById('trainArch').value,
+                base_mode: document.getElementById('trainBaseMode').value,
+                epochs: Number(document.getElementById('trainEpochs').value),
+                batch_size: Number(document.getElementById('trainBatchSize').value),
+                lr: Number(document.getElementById('trainLr').value),
+                use_augment: document.getElementById('trainAugment').checked,
+                freeze_backbone: document.getElementById('trainFreeze').checked
+            };
+            const res = await fetch('/api/admin/train/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alertEl.textContent = data.error || 'Gagal memulai pelatihan.';
+                alertEl.classList.remove('hidden');
+                return;
+            }
+            pollTrainStatus();
+            if (trainPoller) clearInterval(trainPoller);
+            trainPoller = setInterval(pollTrainStatus, 1200);
+        });
+
+        document.getElementById('btnStopTrain').addEventListener('click', async () => {
+            await fetch('/api/admin/train/stop', { method: 'POST' });
+        });
+
+        async function loadTrainRuns() {
+            const res = await fetch('/api/admin/train/runs');
+            const data = await res.json();
+            const tbody = document.getElementById('trainRunsBody');
             tbody.innerHTML = '';
-            scans.forEach(s => {
+            const runs = data.runs || [];
+            if (!runs.length) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px;">Belum ada riwayat pelatihan.</td></tr>';
+                return;
+            }
+            runs.forEach(r => {
                 const tr = document.createElement('tr');
-                const isReal = s.verdict === 'REAL';
-                tr.innerHTML = `
-                    <td style="font-family: var(--font-mono); font-size: 11px;">${s.timestamp}</td>
-                    <td><strong>${s.filename}</strong></td>
-                    <td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">${s.dimensions}</td>
-                    <td><span class="matrix-active-tag">${(s.algorithm || 'ResNet-18').toUpperCase()}</span></td>
-                    <td><span class="matrix-badge ${isReal ? 'real' : 'fake'}">${s.verdict}</span></td>
-                    <td style="font-family: var(--font-mono); font-weight: 700; color: ${isReal ? 'var(--real-color)' : 'var(--fake-color)'};">${s.confidence}%</td>
-                    <td style="font-family: var(--font-mono); font-size: 11px;">${s.latency_ms} ms</td>
-                `;
+                const addTd = (txt, cls) => {
+                    const td = document.createElement('td');
+                    if (cls) td.className = cls;
+                    td.textContent = txt;
+                    tr.appendChild(td);
+                };
+                addTd('#' + r.id, 'mono');
+                addTd(r.started_at, 'mono');
+                addTd(r.architecture, 'mono');
+                addTd(r.train_samples + ' / ' + r.val_samples, 'mono');
+                addTd(String(r.epochs), 'mono');
+                addTd(r.best_val_acc != null ? Number(r.best_val_acc).toFixed(1) + '%' : '—', 'mono');
+
+                const tdSt = document.createElement('td');
+                const chip = document.createElement('span');
+                chip.className = 'chip ' + (r.status === 'COMPLETED' ? 'chip-real' : r.status === 'TRAINING' ? 'chip-accent' : 'chip-fake');
+                chip.textContent = r.status;
+                tdSt.appendChild(chip);
+                tr.appendChild(tdSt);
+
+                const tdAct = document.createElement('td');
+                if (r.checkpoint_path && r.status === 'COMPLETED') {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'btn btn-secondary btn-sm';
+                    b.textContent = 'Aktifkan Checkpoint';
+                    b.addEventListener('click', () => activateCheckpoint(r.checkpoint_path));
+                    tdAct.appendChild(b);
+                } else {
+                    tdAct.textContent = '—';
+                }
+                tr.appendChild(tdAct);
                 tbody.appendChild(tr);
             });
         }
 
-        function renderModelsRegistry(algos) {
-            const list = document.getElementById('modelsRegistryList');
-            if (!list) return;
-            list.innerHTML = '';
+        // 4. Algorithm & Checkpoint Configuration
+        async function loadModelsConfig() {
+            const res = await fetch('/api/admin/models');
+            const data = await res.json();
+            const cfg = data.config || {};
+            const algos = data.algorithms || [];
+
+            const togglesList = document.getElementById('algoTogglesList');
+            const defSelect = document.getElementById('cfgDefaultAlgo');
+            togglesList.innerHTML = '';
+            defSelect.innerHTML = '';
+
             algos.forEach(a => {
-                const div = document.createElement('div');
-                div.className = 'model-registry-item';
-                div.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <strong>${a.name}</strong>
-                        <span class="matrix-badge ${a.loaded ? 'real' : 'fake'}">${a.loaded ? 'TERSEDIA' : 'TIDAK AKTIF'}</span>
-                    </div>
-                    <div style="font-size: 11.5px; color: var(--text-secondary);">${a.badge} &bull; ${a.is_active ? '<span style="color: var(--primary);">SEDANG AKTIF DIGUNAKAN</span>' : 'Siap Dipanggil'}</div>
-                `;
-                list.appendChild(div);
+                const row = document.createElement('div');
+                row.className = 'algo-config-row';
+
+                const left = document.createElement('div');
+                const title = document.createElement('div');
+                title.style.fontWeight = '600';
+                title.style.fontSize = '13px';
+                title.textContent = a.name + ' (' + a.type + ')';
+                const sub = document.createElement('div');
+                sub.style.fontSize = '11.5px';
+                sub.style.color = 'var(--text-secondary)';
+                sub.textContent = a.subtitle + ' · ' + a.checkpoint_path;
+                left.append(title, sub);
+
+                const sw = document.createElement('label');
+                sw.className = 'switch';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'algo-enable-cb';
+                cb.value = a.id;
+                cb.checked = a.enabled;
+                const sl = document.createElement('span');
+                sl.className = 'switch-slider';
+                sw.append(cb, sl);
+
+                row.append(left, sw);
+                togglesList.appendChild(row);
+
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = a.name + ' — ' + a.subtitle;
+                if (a.id === cfg.default_algorithm) opt.selected = true;
+                defSelect.appendChild(opt);
+            });
+
+            document.getElementById('cfgThreshold').value = Number(cfg.decision_threshold || 0.5).toFixed(2);
+            const w = cfg.ensemble_weights || {};
+            document.getElementById('wVit').value = w.vit ?? 0.55;
+            document.getElementById('wResnet').value = w.resnet18 ?? 0.30;
+            document.getElementById('wEla').value = w.ela ?? 0.15;
+
+            const ckptBody = document.getElementById('checkpointsBody');
+            ckptBody.innerHTML = '';
+            (data.checkpoints || []).forEach(c => {
+                const tr = document.createElement('tr');
+                const tdN = document.createElement('td');
+                tdN.className = 'mono';
+                tdN.style.fontSize = '11.5px';
+                tdN.textContent = c.name;
+                if (c.is_active) {
+                    const tag = document.createElement('span');
+                    tag.className = 'chip chip-real';
+                    tag.style.marginLeft = '8px';
+                    tag.textContent = 'AKTIF';
+                    tdN.appendChild(tag);
+                }
+
+                const tdS = document.createElement('td');
+                tdS.className = 'mono';
+                tdS.textContent = c.size_mb + ' MB';
+
+                const tdM = document.createElement('td');
+                tdM.className = 'mono';
+                tdM.style.color = 'var(--text-secondary)';
+                tdM.style.fontSize = '11px';
+                tdM.textContent = c.modified;
+
+                const tdA = document.createElement('td');
+                if (!c.is_active) {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'btn btn-secondary btn-sm';
+                    b.textContent = 'Aktifkan';
+                    b.addEventListener('click', () => activateCheckpoint(c.path));
+                    tdA.appendChild(b);
+                } else {
+                    tdA.innerHTML = '<span style="color:var(--real);font-size:12px;">Digunakan</span>';
+                }
+
+                tr.append(tdN, tdS, tdM, tdA);
+                ckptBody.appendChild(tr);
             });
         }
 
-        // Dataset Sample Explorer Loader
-        function loadDatasetSamples() {
-            fetch('/api/admin/dataset/list')
-                .then(r => r.json())
-                .then(data => {
-                    const grid = document.getElementById('datasetPreviewGrid');
-                    if (!grid) return;
-                    grid.innerHTML = '';
-
-                    const allSamples = [];
-                    (data.real || []).forEach(f => allSamples.push({ ...f, type: 'real' }));
-                    (data.fake || []).forEach(f => allSamples.push({ ...f, type: 'fake' }));
-
-                    if (allSamples.length === 0) {
-                        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 24px 0;">Tidak ada berkas pada dataset.</div>';
-                        return;
-                    }
-
-                    allSamples.slice(0, 16).forEach(s => {
-                        const card = document.createElement('div');
-                        card.className = 'dataset-sample-card ' + (s.type === 'real' ? 'card-real-border' : 'card-fake-border');
-                        card.innerHTML = `
-                            <div class="sample-type-badge ${s.type === 'real' ? 'badge-real' : 'badge-fake'}">${s.type.toUpperCase()}</div>
-                            <div class="sample-filename">${s.name}</div>
-                            <div class="sample-filesize">${(s.size / 1024).toFixed(1)} KB</div>
-                        `;
-                        grid.appendChild(card);
-                    });
-                })
-                .catch(err => console.error('Error loading dataset samples:', err));
-        }
-
-        // Upload Dataset Sample Handler
-        document.getElementById('btnUploadDataset').addEventListener('click', () => {
-            const fileInput = document.getElementById('datasetFileInput');
-            const alertErr = document.getElementById('datasetUploadAlert');
-            const alertSucc = document.getElementById('datasetUploadSuccess');
-            const cat = document.querySelector('input[name="datasetCategory"]:checked').value;
-
-            alertErr.classList.add('hidden');
-            alertSucc.classList.add('hidden');
-
-            if (!fileInput.files || !fileInput.files[0]) {
-                alertErr.textContent = 'Pilih berkas gambar terlebih dahulu.';
-                alertErr.classList.remove('hidden');
+        async function activateCheckpoint(path) {
+            const alertBox = document.getElementById('ckptAlert');
+            alertBox.classList.add('hidden');
+            const res = await fetch('/api/admin/models/activate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ checkpoint_path: path })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Gagal mengaktifkan checkpoint.');
                 return;
             }
-
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
-            formData.append('category', cat);
-
-            const btn = document.getElementById('btnUploadDataset');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...';
-
-            fetch('/api/admin/dataset/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-plus"></i> Simpan Sampel ke Direktori Dataset';
-                if (data.error) {
-                    alertErr.textContent = data.error;
-                    alertErr.classList.remove('hidden');
-                } else {
-                    alertSucc.textContent = data.message;
-                    alertSucc.classList.remove('hidden');
-                    fileInput.value = '';
-                    refreshAdminStats();
-                    loadDatasetSamples();
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-plus"></i> Simpan Sampel ke Direktori Dataset';
-                alertErr.textContent = 'Gagal mengunggah: ' + err.message;
-                alertErr.classList.remove('hidden');
-            });
-        });
-
-        // Training Studio Handler
-        let trainPollInterval = null;
-
-        document.getElementById('btnStartTraining').addEventListener('click', () => {
-            const epochs = document.getElementById('trainEpochs').value;
-            const batchSize = document.getElementById('trainBatchSize').value;
-            const lr = document.getElementById('trainLr').value;
-            const alertErr = document.getElementById('trainErrorAlert');
-
-            alertErr.classList.add('hidden');
-
-            const formData = new FormData();
-            formData.append('epochs', epochs);
-            formData.append('batch_size', batchSize);
-            formData.append('lr', lr);
-
-            const btn = document.getElementById('btnStartTraining');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memulai...';
-
-            fetch('/api/admin/train/start', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Pelatihan Model';
-                    alertErr.textContent = data.error;
-                    alertErr.classList.remove('hidden');
-                } else {
-                    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Pelatihan Sedang Berjalan...';
-                    startTrainingPolling();
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Pelatihan Model';
-                alertErr.textContent = 'Koneksi gagal: ' + err.message;
-                alertErr.classList.remove('hidden');
-            });
-        });
-
-        function startTrainingPolling() {
-            if (trainPollInterval) clearInterval(trainPollInterval);
-
-            trainPollInterval = setInterval(() => {
-                fetch('/api/admin/train/status')
-                    .then(r => r.json())
-                    .then(state => {
-                        document.getElementById('trainStatusBadge').textContent = state.status;
-                        document.getElementById('trainMessageText').textContent = state.message;
-                        document.getElementById('trainProgressPctText').textContent = state.progress + '%';
-                        document.getElementById('trainProgressBarFill').style.width = state.progress + '%';
-                        document.getElementById('trainEpochCount').textContent = state.epoch + ' / ' + state.total_epochs;
-                        document.getElementById('trainLossValue').textContent = state.loss.toFixed(4);
-                        document.getElementById('trainAccuracyValue').textContent = state.accuracy.toFixed(1) + '%';
-
-                        const terminal = document.getElementById('trainTerminalLog');
-                        if (state.logs && state.logs.length > 0) {
-                            terminal.innerHTML = state.logs.map(l => `<div>${l}</div>`).join('');
-                            terminal.scrollTop = terminal.scrollHeight;
-                        }
-
-                        if (state.status === 'COMPLETED' || state.status === 'ERROR') {
-                            clearInterval(trainPollInterval);
-                            const btn = document.getElementById('btnStartTraining');
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Pelatihan Model';
-                            refreshAdminStats();
-                        }
-                    })
-                    .catch(err => console.error('Error polling train status:', err));
-            }, 1000);
+            alertBox.textContent = data.message;
+            alertBox.classList.remove('hidden');
+            loadModelsConfig();
         }
 
-        // Save Algorithm Config Handler
-        document.getElementById('btnSaveConfig').addEventListener('click', () => {
-            const engine = document.getElementById('configDefaultEngine').value;
-            const alertSucc = document.getElementById('configSuccessAlert');
-            alertSucc.classList.add('hidden');
+        document.getElementById('btnSaveConfig').addEventListener('click', async () => {
+            const errEl = document.getElementById('cfgAlertErr');
+            const okEl = document.getElementById('cfgAlertOk');
+            errEl.classList.add('hidden');
+            okEl.classList.add('hidden');
 
-            const formData = new FormData();
-            formData.append('engine', engine);
-
-            fetch('/api/admin/config', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    alertSucc.textContent = data.message;
-                    alertSucc.classList.remove('hidden');
-                    refreshAdminStats();
-                } else {
-                    alert(data.error || 'Gagal mengubah konfigurasi');
+            const enabled = Array.from(document.querySelectorAll('.algo-enable-cb:checked')).map(c => c.value);
+            const payload = {
+                enabled_algorithms: enabled,
+                default_algorithm: document.getElementById('cfgDefaultAlgo').value,
+                decision_threshold: Number(document.getElementById('cfgThreshold').value),
+                ensemble_weights: {
+                    vit: Number(document.getElementById('wVit').value),
+                    resnet18: Number(document.getElementById('wResnet').value),
+                    ela: Number(document.getElementById('wEla').value)
                 }
-            })
-            .catch(err => alert('Koneksi gagal: ' + err.message));
+            };
+            const res = await fetch('/api/admin/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errEl.textContent = data.error || 'Gagal menyimpan konfigurasi.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            okEl.textContent = data.message;
+            okEl.classList.remove('hidden');
+            loadModelsConfig();
         });
 
-        // Initial Load
+        // Initial Boot
         document.addEventListener('DOMContentLoaded', () => {
-            refreshAdminStats();
-            loadDatasetSamples();
-            setInterval(refreshAdminStats, 4000);
+            loadStats();
+            loadAuditLogs();
+            setInterval(loadStats, 5000);
         });
     </script>
 </body>

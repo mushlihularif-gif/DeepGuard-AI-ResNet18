@@ -3,156 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cara Kerja & Panduan — DeepGuard AI</title>
+    <title>Metodologi Forensik — DeepGuard AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/static/img/logo_deteksi_citra_ai.png">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-    <!-- Header / Navbar -->
-    <header class="navbar">
-        <div class="navbar-container">
+    <header class="topbar">
+        <div class="topbar-inner">
             <a href="index.html" class="brand">
-                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI Logo" class="brand-logo-img">
-                <div class="brand-text">
-                    <span class="brand-title">DeepGuard AI</span>
-                    <span class="brand-pill">FORENSICS</span>
-                </div>
+                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI" class="brand-logo">
+                <span class="brand-name">DeepGuard AI</span>
+                <span class="brand-tag">FORENSICS</span>
             </a>
-            <nav>
-                <ul class="nav-links">
-                    <li><a href="index.html"><i class="fa-solid fa-house"></i> Beranda</a></li>
-                    <li><a href="deteksi.html"><i class="fa-solid fa-crosshairs"></i> Deteksi Citra</a></li>
-                    <li><a href="panduan.html" class="active"><i class="fa-solid fa-book-bookmark"></i> Cara Kerja</a></li>
-                    <li><a href="tentang.html"><i class="fa-solid fa-circle-info"></i> Tentang Kami</a></li>
-                    <li><a href="admin.html" class="btn btn-sm btn-admin-nav"><i class="fa-solid fa-sliders"></i> Konsol Admin</a></li>
-                </ul>
+            <nav class="nav-group">
+                <a href="index.html" class="nav-link">Beranda</a>
+                <a href="deteksi.html" class="nav-link">Deteksi Citra</a>
+                <a href="panduan.html" class="nav-link active">Metodologi</a>
+                <a href="tentang.html" class="nav-link">Arsitektur</a>
+                <span class="nav-divider"></span>
+                <a href="admin.html" class="nav-admin">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                    Konsol Admin
+                </a>
             </nav>
         </div>
     </header>
 
-    <!-- Konten Utama -->
-    <main class="main-content">
-
-        <div class="page-header">
-            <span class="page-badge"><i class="fa-solid fa-book-bookmark"></i> DOKUMENTASI SISTEM</span>
-            <h1 class="page-title">
-                <i class="fa-solid fa-sliders"></i> Cara Kerja & Spesifikasi Teknis
-            </h1>
-            <p class="page-desc">
-                Pelajari alur kerja pemindaian neural, format berkas yang didukung, serta metode pembacaan skor probabilitas klasifikasi citra.
-            </p>
+    <main class="page-wrap">
+        <div class="page-head">
+            <div>
+                <div class="page-eyebrow">METODOLOGI DETEKSI &amp; PANDUAN</div>
+                <h1 class="page-title">Alur Kerja &amp; Interpretasi Bukti Forensik</h1>
+                <p class="page-subtitle">
+                    Ringkasan teknis bagaimana DeepGuard AI mengekstrak fitur spasial, spektrum frekuensi, dan bukti kriptografis pada setiap pemindaian.
+                </p>
+            </div>
+            <a href="deteksi.html" class="btn btn-primary btn-sm">Buka Ruang Deteksi &rarr;</a>
         </div>
 
-        <!-- Alur Kerja Pemindaian 3 Langkah -->
-        <section class="card">
-            <div class="card-header-clean">
-                <h2 class="card-title"><i class="fa-solid fa-route"></i> Alur Pemindaian Tiga Langkah</h2>
-                <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">WORKFLOW</span>
+        <!-- 3-Step Pipeline -->
+        <section class="grid-3" style="margin-bottom: 20px;">
+            <div class="cap-card">
+                <div class="cap-num">TAHAP 01 / VALIDASI &amp; HASH</div>
+                <h3 class="cap-title">Normalisasi In-Memory</h3>
+                <p class="cap-desc">
+                    Berkas JPG/PNG (maks. 10 MB, 25 MP) diverifikasi strukturnya di RAM, dihitung digest SHA-256, dan disesuaikan orientasi EXIF tanpa menyimpan data ke disk.
+                </p>
+            </div>
+            <div class="cap-card">
+                <div class="cap-num">TAHAP 02 / MULTI-ENGINE</div>
+                <h3 class="cap-title">Inferensi Neural &amp; Sinyal</h3>
+                <p class="cap-desc">
+                    Citra diproses paralel oleh model CNN (ResNet-18), Vision Transformer (ViT-S/16), serta modul sinyal Error Level Analysis dan 2D Fast Fourier Transform.
+                </p>
+            </div>
+            <div class="cap-card">
+                <div class="cap-num">TAHAP 03 / VERIFIKASI BUKTI</div>
+                <h3 class="cap-title">C2PA &amp; Peta Grad-CAM</h3>
+                <p class="cap-desc">
+                    Sistem memverifikasi manifest C2PA secara offline dan merender peta aktivasi Grad-CAM, ELA, dan 2D-FFT agar alasan keputusan terlihat transparan.
+                </p>
+            </div>
+        </section>
+
+        <!-- Visual Overlays & Signal Explanation -->
+        <section class="grid-2" style="margin-bottom: 20px;">
+            <div class="panel">
+                <div class="panel-head">
+                    <h2 class="panel-title">Membaca Lapisan Visual Forensik</h2>
+                    <span class="chip">INTERACTIVE OVERLAY</span>
+                </div>
+                <div class="panel-body">
+                    <div class="finding-list" style="margin-bottom: 0;">
+                        <div class="finding-item st-info">
+                            <div class="finding-top">
+                                <span class="finding-title">Grad-CAM (Peta Aktivasi CNN)</span>
+                                <span class="finding-metric">Layer4</span>
+                            </div>
+                            <div class="finding-detail">Menyoroti wilayah piksel yang paling memengaruhi skor klasifikasi ResNet-18 atau model CNN terlatih. Area merah/oranye menandakan kontribusi tertinggi.</div>
+                        </div>
+                        <div class="finding-item st-warn">
+                            <div class="finding-top">
+                                <span class="finding-title">Peta ELA (Error Level Analysis)</span>
+                                <span class="finding-metric">JPEG Q90</span>
+                            </div>
+                            <div class="finding-detail">Mengukur perbedaan kompresi setelah penyimpanan ulang JPEG 90%. Citra asli umumnya memiliki distribusi error merata, sementara area editan menunjukkan kontras tajam.</div>
+                        </div>
+                        <div class="finding-item st-ok">
+                            <div class="finding-top">
+                                <span class="finding-title">Spektrum Frekuensi 2D-FFT</span>
+                                <span class="finding-metric">256×256 Log</span>
+                            </div>
+                            <div class="finding-detail">Memetakan komponen frekuensi spasial. Generator difusi &amp; upsampler sering meninggalkan lonjakan energi periodik di frekuensi menengah-tinggi (nilai z tinggi).</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="step-list">
-                <div class="step-item">
-                    <div class="step-badge">1</div>
-                    <div>
-                        <h3 style="font-size: 14.5px; font-weight: 700; margin-bottom: 3px; color: #ffffff;">
-                            Unggah Berkas Citra
-                        </h3>
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                            Tarik berkas foto digital JPG atau PNG ke area unggah pada menu <strong>Deteksi Citra</strong>. Berkas akan divalidasi langsung di sisi peramban.
-                        </p>
-                    </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <h2 class="panel-title">Spesifikasi Input &amp; Keamanan</h2>
+                    <span class="chip chip-real">ZERO-RETENTION</span>
                 </div>
-
-                <div class="step-item">
-                    <div class="step-badge">2</div>
-                    <div>
-                        <h3 style="font-size: 14.5px; font-weight: 700; margin-bottom: 3px; color: #ffffff;">
-                            Eksekusi Pemindaian Laser & Inferensi
-                        </h3>
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                            Klik <strong>"Analisis Citra"</strong>. Model {{ model_info.architecture }} menjalankan inferensi di memori pada komputer yang menjalankan server.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="step-item">
-                    <div class="step-badge">3</div>
-                    <div>
-                        <h3 style="font-size: 14.5px; font-weight: 700; margin-bottom: 3px; color: #ffffff;">
-                            Dapatkan Hasil & Skor Keyakinan
-                        </h3>
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                            Sistem memeriksa kredensial asal C2PA dan pola visual. Bukti C2PA yang valid dapat menghasilkan "Penggunaan AI tercatat". Tanpa bukti itu, model menampilkan indikasi non-AI, AI, atau belum dapat dipastikan. {{ model_info.score_description }}; skor visual bukan jaminan keaslian. Metadata yang hilang bukan bukti non-AI.
-                        </p>
+                <div class="panel-body">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <tbody>
+                                <tr>
+                                    <td style="color: var(--text-secondary);">Format Didukung</td>
+                                    <td class="mono">JPEG (.jpg, .jpeg), PNG (.png)</td>
+                                </tr>
+                                <tr>
+                                    <td style="color: var(--text-secondary);">Batas Ukuran &amp; Resolusi</td>
+                                    <td class="mono">Maks. 10 MB · Min. 32 px · Maks. 25 MP</td>
+                                </tr>
+                                <tr>
+                                    <td style="color: var(--text-secondary);">Ambang Keputusan Aktif</td>
+                                    <td class="mono">{{ '%.0f%%'|format(model_info.decision_threshold * 100) }} (dapat diatur di Konsol Admin)</td>
+                                </tr>
+                                <tr>
+                                    <td style="color: var(--text-secondary);">Verifikasi Kredensial C2PA</td>
+                                    <td class="mono">Offline Trust Anchor (tanpa panggilan eksternal)</td>
+                                </tr>
+                                <tr>
+                                    <td style="color: var(--text-secondary);">Penyimpanan Gambar User</td>
+                                    <td class="mono" style="color: var(--real);">0 Byte (RAM InMemoryRequest)</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </section>
-
-        <!-- Spesifikasi & Interpretasi Skor -->
-        <section class="grid-2">
-            <div class="card">
-                <div class="card-header-clean">
-                    <h2 class="card-title"><i class="fa-solid fa-file-shield"></i> Spesifikasi Berkas</h2>
-                </div>
-                <ul style="font-size: 13px; color: var(--text-secondary); padding-left: 18px; display: flex; flex-direction: column; gap: 9px; line-height: 1.6;">
-                    <li><strong>Format Didukung:</strong> JPEG, JPG, dan PNG. Dokumen non-gambar otomatis ditolak demi keamanan sistem.</li>
-                    <li><strong>Batas Ukuran:</strong> Maksimal 10 MB per berkas foto.</li>
-                    <li><strong>Resolusi Standar:</strong> Input model berukuran {{ model_info.input_size }}&times;{{ model_info.input_size }} RGB. Community Forensics memakai resize sisi pendek 440 lalu potongan tengah 384; area tepi dapat terlewat. ResNet18 memakai resize seluruh gambar 224.</li>
-                    <li><strong>Kualitas Anjuran:</strong> Gunakan berkas asli jika tersedia; kompresi berulang dapat mengubah hasil.</li>
-                </ul>
-            </div>
-
-            <div class="card">
-                <div class="card-header-clean">
-                    <h2 class="card-title"><i class="fa-solid fa-gauge-high"></i> Interpretasi Skor Keyakinan</h2>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
-                    <div style="padding: 10px 12px; background: var(--real-bg); border: 1px solid var(--real-border); border-radius: var(--radius-sm);">
-                        <strong style="color: var(--real-color);"><i class="fa-solid fa-circle-check"></i> NON-AI (skor AI ≤ 20%):</strong>
-                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Lebih menyerupai kelas non-AI dalam data latihan; tidak membuktikan gambar bebas edit AI.</span>
-                    </div>
-                    <div style="padding: 10px 12px; background: var(--fake-bg); border: 1px solid var(--fake-border); border-radius: var(--radius-sm);">
-                        <strong style="color: var(--fake-color);"><i class="fa-solid fa-triangle-exclamation"></i> AI (skor AI ≥ 80%):</strong>
-                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Model menemukan kemiripan dengan data AI; hasil tetap perlu dikonfirmasi dari sumber gambar.</span>
-                    </div>
-                    <div style="padding: 10px 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--radius-sm);">
-                        <strong style="color: var(--warn-color);"><i class="fa-solid fa-circle-info"></i> AREA RAGU (20% &lt; skor AI &lt; 80%):</strong>
-                        <span style="color: var(--text-secondary); display: block; margin-top: 2px;">Model menahan keputusan. Periksa sumber dan foto sebelum edit. EXIF kamera dapat tetap ada setelah edit AI.</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tanya Jawab Singkat (FAQ) -->
-        <section class="card">
-            <div class="card-header-clean">
-                <h2 class="card-title"><i class="fa-solid fa-circle-question"></i> Pertanyaan Umum (FAQ)</h2>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
-                <div>
-                    <h4 style="font-weight: 700; color: #ffffff; margin-bottom: 3px;">Apakah foto saya disimpan di server?</h4>
-                    <p style="color: var(--text-secondary); line-height: 1.6;">Tidak. DeepGuard AI menerapkan kebijakan <em>zero-retention</em>. Citra hanya diproses sementara di RAM server dan segera dibuang setelah inferensi selesai.</p>
-                </div>
-                <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-                    <h4 style="font-weight: 700; color: #ffffff; margin-bottom: 3px;">Model apa yang mentenagai deteksi ini?</h4>
-                    <p style="color: var(--text-secondary); line-height: 1.6;">Sistem memakai {{ model_info.architecture }} untuk klasifikasi non-AI vs AI. Community Forensics adalah model pralatih eksternal; ResNet18 hasil latihan proyek tetap tersedia sebagai baseline. Tidak ada model yang menjamin semua gambar baru terdeteksi.</p>
-                </div>
-            </div>
-        </section>
-
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; Enterprise Neural Image Forensics</span>
-            <span>Model: {{ model_info.architecture }} &bull; Privasi Terjamin &bull; 2026</span>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <span><strong>DeepGuard AI</strong> &bull; Platform Forensik Citra Digital &amp; Verifikasi Generative AI</span>
+            <span class="mono">Multi-Algorithm Detection &bull; C2PA Offline Verification</span>
         </div>
     </footer>
 

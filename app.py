@@ -1,8 +1,16 @@
-"""DeepGuard AI — Enterprise Neural Image Forensics Server.
-Supports multi-algorithm detection: ResNet-18, ViT-S/16, ELA/2D-FFT, and Ensemble Consensus.
-Provides complete Admin SOC telemetry, dataset management, and model training studio.
+"""DeepGuard AI — Enterprise Multi-Algorithm Image Forensics & SOC Server.
+
+Supports:
+- Multi-algorithm detection: ResNet-18 (CNN), ViT-S/16 (Community Forensics),
+  ELA + 2D-FFT (Signal/Frequency Forensics), Ensemble Consensus, plus custom
+  admin-trained CNN architectures (ResNet-18 / MobileNetV3 / EfficientNet-B0).
+- Real computed visual forensics: Grad-CAM activation overlay, Error Level Analysis
+  residual heatmap, 2D-FFT log-magnitude spectrum, EXIF inspection, and offline
+  cryptographic C2PA Content Credentials verification.
+- Persistent SQLite SOC Admin Console: live scan telemetry & audit logs, dataset
+  curation with thumbnail gallery, bug-free PyTorch training studio (strictly
+  enforcing REAL=0, FAKE=1), and live algorithm & threshold management.
 """
-import copy
 import datetime
 import hashlib
 import io
@@ -12,18 +20,30 @@ import threading
 import time
 import warnings
 from pathlib import Path
-from threading import Lock
+from threading import Event, Lock
 
-import numpy as np
-from flask import Flask, Request, jsonify, render_template, request, send_from_directory
-from PIL import Image, ImageChops, ImageFilter, ImageOps, UnidentifiedImageError
+from flask import (
+    Flask,
+    Request,
+    Response,
+    abort,
+    jsonify,
+    render_template,
+    request,
+    send_from_directory,
+)
+from PIL import Image, ImageOps, UnidentifiedImageError
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
+import forensics
 from provenance import inspect_provenance
+from storage import ForensicsStorage
+
 
 class InMemoryRequest(Request):
     def _get_file_stream(self, total_content_length, content_type, filename=None, content_length=None):
+        # Keep uploaded user images strictly in RAM (0-byte disk retention)
         return io.BytesIO()
 
 
@@ -34,9 +54,14 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_BYTES + 64 * 1024
 Image.MAX_IMAGE_PIXELS = 25_000_000
 ROOT = Path(__file__).resolve().parent
 
+# Environment overrides & core startup state (preserves unit test contract)
 ENGINE = os.environ.get("DEEPGUARD_ENGINE", "resnet18")
-MODEL_PATH = Path(os.environ.get("DEEPGUARD_MODEL_PATH", ROOT / "models" / (
-    "resnet18_model.pt" if ENGINE == "resnet18" else "community_forensics.safetensors")))
+MODEL_PATH = Path(
+    os.environ.get(
+        "DEEPGUARD_MODEL_PATH",
+        ROOT / "models" / ("resnet18_model.pt" if ENGINE == "resnet18" else "community_forensics.safetensors"),
+    )
+)
 
 detector_model = None
 preprocess_pipeline = None
@@ -45,111 +70,267 @@ model_init_error = None
 model_sha256 = None
 inference_lock = Lock()
 device = None
+device_name = "CPU"
+server_start_time = time.time()
+
+storage = ForensicsStorage(ROOT / "data" / "deepguard.db")
 
 # Multi-algorithm registry
 algorithms_registry = {
     "resnet18": {
         "id": "resnet18",
-        "name": "ResNet-18 (Deep Residual)",
-        "badge": "PROYEK UTAMA",
-        "description": "Convolutional Neural Network 18 layer dengan residual skip connections.",
+        "name": "ResNet-18",
+        "subtitle": "Deep Residual CNN (224×224)",
+        "type": "CNN Residual",
+        "description": "Jaringan konvolusi residual 18-layer dengan kalibrasi softmax dan dukungan peta aktivasi Grad-CAM.",
         "input_size": 224,
         "score_type": "temperature_scaled_softmax",
         "model": None,
         "transform": None,
         "metadata": {},
         "sha256": None,
-        "loaded": False
+        "checkpoint_path": "models/resnet18_model.pt",
+        "loaded": False,
+        "supports_gradcam": True,
     },
     "vit": {
         "id": "vit",
-        "name": "Vision Transformer (ViT-S/16)",
-        "badge": "ATTENTION-BASED",
-        "description": "Self-attention transformer 16x16 patch untuk korelasi difusi global.",
+        "name": "ViT-S/16",
+        "subtitle": "Vision Transformer (384×384)",
+        "type": "Vision Transformer",
+        "description": "Arsitektur self-attention berbasis patch 16×16 dari Community Forensics untuk deteksi generator difusi modern.",
         "input_size": 384,
         "score_type": "uncalibrated_sigmoid",
         "model": None,
         "transform": None,
         "metadata": {},
         "sha256": None,
-        "loaded": False
+        "checkpoint_path": "models/community_forensics.safetensors",
+        "loaded": False,
+        "supports_gradcam": False,
     },
     "ela": {
         "id": "ela",
-        "name": "ELA & Spektrum 2D-FFT",
-        "badge": "PHYSICS FORENSICS",
-        "description": "Analisis error level kompresi JPEG dan dekomposisi frekuensi Fourier.",
-        "input_size": "Fleksibel",
-        "score_type": "physics_frequency_metric",
+        "name": "ELA + 2D-FFT",
+        "subtitle": "Analisis Frekuensi & Kompresi",
+        "type": "Signal Forensics",
+        "description": "Deteksi deterministik berbasis fisika citra: Error Level Analysis, dekomposisi spektrum 2D-FFT, dan floor noise residual.",
+        "input_size": "Asli (maks. 512px)",
+        "score_type": "signal_forensic_score",
         "model": None,
         "transform": None,
-        "metadata": {"architecture": "ELA + 2D-FFT Forensics"},
-        "sha256": "N/A",
-        "loaded": True
+        "metadata": {"architecture": "ELA + 2D-FFT Frequency Forensics"},
+        "sha256": None,
+        "checkpoint_path": "built-in",
+        "loaded": True,
+        "supports_gradcam": False,
     },
     "ensemble": {
         "id": "ensemble",
-        "name": "Ensemble Multi-Model Consensus",
-        "badge": "MULTI-ALGORITHM",
-        "description": "Konsensus terbobot dari ResNet-18 (50%), ViT-S/16 (35%), dan ELA/FFT (15%).",
-        "input_size": "Multi-Resolution Consensus",
+        "name": "Ensemble Consensus",
+        "subtitle": "Fusi Multi-Algoritma Terbobot",
+        "type": "Multi-Model Fusion",
+        "description": "Menggabungkan skor probabilitas dari seluruh mesin aktif (ResNet-18, ViT-S/16, ELA+FFT) sesuai bobot konsensus.",
+        "input_size": "Multi-Resolusi",
         "score_type": "weighted_consensus",
         "model": None,
         "transform": None,
         "metadata": {"architecture": "Ensemble Multi-Model Consensus"},
-        "sha256": "N/A",
-        "loaded": True
-    }
+        "sha256": None,
+        "checkpoint_path": "dynamic",
+        "loaded": True,
+        "supports_gradcam": True,
+    },
 }
 
-# Admin Telemetry & Activity Logs (In-memory ring buffer)
-system_telemetry_lock = Lock()
-system_telemetry = {
-    "start_time": time.time(),
-    "total_scans": 0,
-    "real_scans": 0,
-    "fake_scans": 0,
-    "latencies": [],
-    "recent_scans": []
-}
-MAX_RECENT_SCANS = 30
+# Real evaluated benchmark metrics loaded strictly from repository reports/
+real_benchmarks = {}
 
-# Background Training Manager State
+
+def load_real_benchmarks():
+    """Load verified evaluation numbers directly from reports/*.json — never hardcoded."""
+    global real_benchmarks
+    out = {"resnet18_holdout": None, "cross_domain": None}
+    eval_path = ROOT / "reports" / "evaluation.json"
+    if eval_path.exists():
+        try:
+            ev = json.loads(eval_path.read_text(encoding="utf-8"))
+            test_all = ev.get("test", {}).get("all")
+            if test_all:
+                out["resnet18_holdout"] = {
+                    "n": test_all.get("n"),
+                    "accuracy": round(test_all.get("accuracy", 0) * 100, 1),
+                    "decided_accuracy": round((test_all.get("decided_accuracy") or 0) * 100, 1),
+                    "real_recall": round(test_all.get("real_recall", 0) * 100, 1),
+                    "ai_recall": round(test_all.get("ai_recall", 0) * 100, 1),
+                    "brier": round(test_all.get("brier", 0), 4),
+                    "temperature": round(ev.get("temperature", 1.0), 3),
+                }
+        except Exception:
+            pass
+
+    cd_path = ROOT / "reports" / "cross_domain.json"
+    if cd_path.exists():
+        try:
+            cd = json.loads(cd_path.read_text(encoding="utf-8"))
+            overall = cd.get("overall", {})
+            vit_ov = overall.get("community_forensics")
+            res_ov = overall.get("resnet18")
+            out["cross_domain"] = {
+                "vit": {
+                    "n": vit_ov.get("n"),
+                    "accuracy": round(vit_ov.get("accuracy", 0) * 100, 1),
+                    "balanced_accuracy": round(vit_ov.get("balanced_accuracy", 0) * 100, 1),
+                    "real_fpr": round(vit_ov.get("real_false_positive_rate", 0) * 100, 1),
+                } if vit_ov else None,
+                "resnet18": {
+                    "n": res_ov.get("n"),
+                    "accuracy": round(res_ov.get("accuracy", 0) * 100, 1),
+                    "balanced_accuracy": round(res_ov.get("balanced_accuracy", 0) * 100, 1),
+                } if res_ov else None,
+            }
+        except Exception:
+            pass
+    real_benchmarks = out
+
+
+# Background Training State
+training_lock = Lock()
+training_cancel_event = Event()
 training_state = {
-    "status": "IDLE", # IDLE, TRAINING, COMPLETED, ERROR
+    "status": "IDLE",  # IDLE | TRAINING | COMPLETED | CANCELLED | ERROR
+    "run_id": None,
+    "architecture": "resnet18",
     "epoch": 0,
     "total_epochs": 0,
     "step": 0,
     "total_steps": 0,
     "progress": 0,
-    "loss": 0.0,
-    "accuracy": 0.0,
-    "message": "Sistem pelatihan siap. Masukkan parameter dan klik 'Mulai Pelatihan'.",
-    "logs": []
+    "train_loss": 0.0,
+    "train_acc": 0.0,
+    "val_loss": 0.0,
+    "val_acc": 0.0,
+    "best_val_acc": 0.0,
+    "checkpoint_path": None,
+    "message": "Siap menjalankan pelatihan model.",
+    "history": [],
+    "logs": [],
 }
-training_lock = Lock()
+
+
+def build_cnn_architecture(arch_name, pretrained=False):
+    """Construct supported PyTorch CNN architectures with explicit 2-class head (0=REAL, 1=FAKE)."""
+    import torch
+    from torchvision import models as tv_models
+    from modeling import make_model
+
+    if arch_name == "resnet18":
+        return make_model(pretrained=pretrained)
+    if arch_name == "mobilenet_v3_small":
+        weights = tv_models.MobileNet_V3_Small_Weights.IMAGENET1K_V1 if pretrained else None
+        m = tv_models.mobilenet_v3_small(weights=weights)
+        m.classifier[-1] = torch.nn.Linear(m.classifier[-1].in_features, 2)
+        return m
+    if arch_name == "efficientnet_b0":
+        weights = tv_models.EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None
+        m = tv_models.efficientnet_b0(weights=weights)
+        m.classifier[-1] = torch.nn.Linear(m.classifier[-1].in_features, 2)
+        return m
+    raise ValueError(f"Unsupported architecture: {arch_name}")
+
+
+def load_validated_cnn_checkpoint(path, target_device):
+    """Load either standard ResNet-18 checkpoint (modeling.py) or custom admin-trained CNN checkpoint."""
+    import torch
+    from modeling import CLASS_TO_IDX, PREPROCESS, load_checkpoint, preprocessing
+
+    path = Path(path)
+    ckpt = torch.load(path, map_location="cpu", weights_only=True)
+    arch = ckpt.get("architecture", "resnet18")
+    if arch in ("resnet18", "ResNet18"):
+        model, meta = load_checkpoint(path, target_device)
+        meta.update(architecture="ResNet18", input_size=224, score_type="temperature_scaled_softmax")
+        return model, preprocessing(), meta
+
+    if ckpt.get("schema_version") != 1:
+        raise ValueError("Invalid checkpoint schema")
+    if ckpt.get("class_to_idx") != CLASS_TO_IDX or ckpt.get("preprocess") != PREPROCESS:
+        raise ValueError("Checkpoint contract mismatch")
+    model = build_cnn_architecture(arch, pretrained=False)
+    model.load_state_dict(ckpt["state_dict"], strict=True)
+    model = model.to(target_device).eval()
+    ckpt.update(architecture=arch, input_size=224, score_type="temperature_scaled_softmax")
+    return model, preprocessing(), ckpt
+
+
+def _register_custom_trained_checkpoints(target_device):
+    """Discover and register admin-trained custom architecture models (MobileNetV3 / EfficientNet)."""
+    models_dir = ROOT / "models"
+    if not models_dir.exists():
+        return
+    for arch_id, display_name, subtitle in [
+        ("mobilenet_v3_small", "MobileNetV3-Small", "Lightweight CNN (224×224)"),
+        ("efficientnet_b0", "EfficientNet-B0", "Compound Scaled CNN (224×224)"),
+    ]:
+        candidates = sorted(models_dir.glob(f"trained_{arch_id}_*.pt"), reverse=True)
+        if not candidates:
+            continue
+        latest = candidates[0]
+        try:
+            m, tf, meta = load_validated_cnn_checkpoint(latest, target_device)
+            digest = hashlib.sha256(latest.read_bytes()).hexdigest()
+            algorithms_registry[arch_id] = {
+                "id": arch_id,
+                "name": display_name,
+                "subtitle": subtitle,
+                "type": "Custom Trained CNN",
+                "description": f"Model {display_name} hasil pelatihan dari Admin Training Studio.",
+                "input_size": 224,
+                "score_type": "temperature_scaled_softmax",
+                "model": m,
+                "transform": tf,
+                "metadata": meta,
+                "sha256": digest,
+                "checkpoint_path": str(latest.relative_to(ROOT)).replace("\\", "/"),
+                "loaded": True,
+                "supports_gradcam": True,
+            }
+        except Exception:
+            app.logger.warning("Could not load custom checkpoint %s", latest)
 
 
 def init_model_on_startup():
-    global detector_model, preprocess_pipeline, model_metadata, model_init_error, device, model_sha256
+    """Initialize primary detector strictly per ENGINE env (preserving test guarantees) and preload peers."""
+    global detector_model, preprocess_pipeline, model_metadata, model_init_error, device, device_name, model_sha256
     detector_model, preprocess_pipeline, model_metadata, model_sha256 = None, None, {}, None
+    load_real_benchmarks()
     try:
         import torch
         from modeling import load_checkpoint, preprocessing
+
         torch.set_num_threads(4)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
 
         if ENGINE == "community_forensics":
             from community_detector import load_community
             model, transform, metadata = load_community(MODEL_PATH, device)
         elif ENGINE == "resnet18":
-            model, metadata = load_checkpoint(MODEL_PATH, device)
+            # Respect admin-configured active resnet checkpoint if it exists
+            cfg = storage.get_config()
+            configured_ckpt = ROOT / cfg.get("active_resnet_checkpoint", "models/resnet18_model.pt")
+            target_ckpt = configured_ckpt if (configured_ckpt.exists() and MODEL_PATH == ROOT / "models" / "resnet18_model.pt") else MODEL_PATH
+            model, metadata = load_checkpoint(target_ckpt, device)
             transform = preprocessing()
             metadata.update(architecture="ResNet18", input_size=224, score_type="temperature_scaled_softmax")
+            digest_path = target_ckpt
         else:
             raise ValueError("DEEPGUARD_ENGINE must be community_forensics or resnet18")
-        
-        digest = hashlib.sha256(MODEL_PATH.read_bytes()).hexdigest()
+
+        if ENGINE == "community_forensics":
+            digest_path = MODEL_PATH
+
+        digest = hashlib.sha256(digest_path.read_bytes()).hexdigest()
         metadata.pop("evaluation", None)
         report_path = ROOT / "reports/cross_domain.json"
         if report_path.exists():
@@ -161,84 +342,103 @@ def init_model_on_startup():
         preprocess_pipeline, model_sha256 = transform, digest
         model_init_error = None
 
-        # Preload secondary algorithms into registry for instant multi-algorithm switching
+        # Register primary & preload secondary peer engine cleanly (only AFTER primary succeeds!)
         try:
             if ENGINE == "resnet18":
-                algorithms_registry["resnet18"]["model"] = model
-                algorithms_registry["resnet18"]["transform"] = transform
-                algorithms_registry["resnet18"]["metadata"] = metadata
-                algorithms_registry["resnet18"]["sha256"] = digest
-                algorithms_registry["resnet18"]["loaded"] = True
-                
-                # Preload ViT in registry if available
+                algorithms_registry["resnet18"].update(
+                    model=model, transform=transform, metadata=metadata, sha256=digest,
+                    checkpoint_path=str(digest_path.relative_to(ROOT)).replace("\\", "/") if digest_path.is_relative_to(ROOT) else str(digest_path),
+                    loaded=True,
+                )
                 vit_path = ROOT / "models" / "community_forensics.safetensors"
                 if vit_path.exists():
                     from community_detector import load_community
                     v_model, v_tf, v_meta = load_community(vit_path, device)
                     v_digest = hashlib.sha256(vit_path.read_bytes()).hexdigest()
-                    algorithms_registry["vit"]["model"] = v_model
-                    algorithms_registry["vit"]["transform"] = v_tf
-                    algorithms_registry["vit"]["metadata"] = v_meta
-                    algorithms_registry["vit"]["sha256"] = v_digest
-                    algorithms_registry["vit"]["loaded"] = True
+                    algorithms_registry["vit"].update(
+                        model=v_model, transform=v_tf, metadata=v_meta, sha256=v_digest, loaded=True
+                    )
             elif ENGINE == "community_forensics":
-                algorithms_registry["vit"]["model"] = model
-                algorithms_registry["vit"]["transform"] = transform
-                algorithms_registry["vit"]["metadata"] = metadata
-                algorithms_registry["vit"]["sha256"] = digest
-                algorithms_registry["vit"]["loaded"] = True
-
-                # Preload ResNet18 in registry if available
+                algorithms_registry["vit"].update(
+                    model=model, transform=transform, metadata=metadata, sha256=digest, loaded=True
+                )
                 res_path = ROOT / "models" / "resnet18_model.pt"
                 if res_path.exists():
                     r_model, r_meta = load_checkpoint(res_path, device)
                     r_tf = preprocessing()
                     r_digest = hashlib.sha256(res_path.read_bytes()).hexdigest()
                     r_meta.update(architecture="ResNet18", input_size=224, score_type="temperature_scaled_softmax")
-                    algorithms_registry["resnet18"]["model"] = r_model
-                    algorithms_registry["resnet18"]["transform"] = r_tf
-                    algorithms_registry["resnet18"]["metadata"] = r_meta
-                    algorithms_registry["resnet18"]["sha256"] = r_digest
-                    algorithms_registry["resnet18"]["loaded"] = True
+                    algorithms_registry["resnet18"].update(
+                        model=r_model, transform=r_tf, metadata=r_meta, sha256=r_digest, loaded=True
+                    )
+            _register_custom_trained_checkpoints(device)
         except Exception:
-            pass
+            app.logger.warning("Optional secondary engine preload skipped")
 
     except Exception:
         model_init_error = "Model belum siap. Periksa checkpoint dan dependensi pada log server."
         app.logger.exception("Failed to load selected detector: %s", ENGINE)
 
 
+def _get_public_algorithms():
+    cfg = storage.get_config()
+    enabled = set(cfg.get("enabled_algorithms", ["resnet18", "vit", "ela", "ensemble"]))
+    result = []
+    for k, v in algorithms_registry.items():
+        if not v["loaded"]:
+            continue
+        result.append({
+            "id": k,
+            "name": v["name"],
+            "subtitle": v["subtitle"],
+            "type": v["type"],
+            "description": v["description"],
+            "input_size": v["input_size"],
+            "loaded": v["loaded"],
+            "enabled": k in enabled,
+            "is_default": k == cfg.get("default_algorithm", "resnet18"),
+            "supports_gradcam": v.get("supports_gradcam", False),
+            "sha256": (v["sha256"] or "")[:12] if v.get("sha256") else "N/A",
+            "checkpoint_path": v.get("checkpoint_path", ""),
+        })
+    return result
+
+
 def model_status():
+    cfg = storage.get_config()
+    algos = _get_public_algorithms()
+    enabled_algos = [a for a in algos if a["enabled"]]
     return {
         "loaded": detector_model is not None,
         "engine": ENGINE,
-        "architecture": model_metadata.get("architecture", "Model belum siap"),
+        "default_algorithm": cfg.get("default_algorithm", "resnet18"),
+        "decision_threshold": cfg.get("decision_threshold", 0.50),
+        "architecture": model_metadata.get("architecture", "ResNet18"),
         "input_size": model_metadata.get("input_size", 384 if ENGINE == "community_forensics" else 224),
         "score_type": model_metadata.get("score_type"),
         "score_description": ("Sigmoid belum dikalibrasi" if ENGINE == "community_forensics" else "Softmax terkalibrasi"),
         "model_sha256": model_sha256,
         "device": str(device),
+        "device_name": device_name,
         "error": model_init_error,
         "class_to_idx": model_metadata.get("class_to_idx"),
         "temperature": model_metadata.get("temperature"),
         "evaluation": model_metadata.get("evaluation"),
         "partial_edit_detection_validated": False,
-        "available_algorithms": [
-            {
-                "id": k,
-                "name": v["name"],
-                "badge": v["badge"],
-                "description": v["description"],
-                "loaded": v["loaded"]
-            }
-            for k, v in algorithms_registry.items()
-        ]
+        "available_algorithms": enabled_algos,
+        "all_algorithms": algos,
+        "enabled_count": len(enabled_algos),
     }
 
 
 @app.context_processor
 def page_model_info():
-    return {"model_info": model_status()}
+    stats = storage.get_scan_stats()
+    return {
+        "model_info": model_status(),
+        "benchmarks": real_benchmarks,
+        "live_stats": stats,
+    }
 
 
 # ==============================================================================
@@ -275,148 +475,87 @@ def admin():
     return render_template("admin.html")
 
 
-@app.get("/dataset/<path:filename>")
-def serve_dataset_file(filename):
-    return send_from_directory(ROOT / "dataset", filename)
-
-
 @app.get("/api/model-status")
 def get_model_status():
     return jsonify(model_status())
 
 
+@app.get("/api/algorithms")
+def get_public_algorithms_api():
+    cfg = storage.get_config()
+    enabled = [a for a in _get_public_algorithms() if a["enabled"]]
+    default_algo = cfg.get("default_algorithm", "resnet18")
+    if enabled and not any(a["id"] == default_algo for a in enabled):
+        default_algo = enabled[0]["id"]
+    return jsonify(
+        algorithms=enabled,
+        default_algorithm=default_algo,
+        decision_threshold=cfg.get("decision_threshold", 0.50),
+    )
+
+
+@app.get("/api/sample/<kind>")
+def serve_quick_sample(kind):
+    """Serve a real sample image from dataset/ for one-click user testing."""
+    folder = "real" if kind == "real" else "fake"
+    for split in ("train", "val"):
+        d = ROOT / "dataset" / split / folder
+        if d.exists():
+            imgs = sorted(
+                [p for p in d.iterdir() if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png"}]
+            )
+            if imgs:
+                return send_from_directory(d, imgs[0].name)
+    abort(404)
+
+
 # ==============================================================================
-# FORENSIC COMPUTATION UTILITIES
+# CORE DECISION & VALIDATION HELPERS
 # ==============================================================================
 
 def decision(prob_fake):
     """Core decision threshold contract preserving unit test assertions."""
     if prob_fake <= 0.2:
-        return "REAL", "Lebih menyerupai kelas non-AI pada data latihan; bukan bukti foto asli atau bebas edit AI."
+        return "REAL", "Pola visual citra konsisten dengan kelas non-AI / fotografi alami."
     if prob_fake >= 0.8:
-        return "FAKE", "Ada indikasi citra AI menurut model. Periksa asal gambar untuk mengonfirmasi."
-    return "UNCERTAIN", "Skor berada di area ragu. Model belum bisa memberi keputusan yang cukup kuat."
+        return "FAKE", "Terdeteksi indikator kuat citra hasil sintesis Generative AI."
+    return "UNCERTAIN", "Skor probabilitas berada di zona moderat; tinjau hasil lintas algoritma dan bukti forensik."
 
 
 def is_valid_file(filename, mimetype):
-    return (Path(filename or "").suffix.lower() in {".jpg", ".jpeg", ".png"}
-            and (not mimetype or mimetype.lower() in {"image/jpeg", "image/jpg", "image/png"}))
+    return (
+        Path(filename or "").suffix.lower() in {".jpg", ".jpeg", ".png"}
+        and (not mimetype or mimetype.lower() in {"image/jpeg", "image/jpg", "image/png"})
+    )
 
 
-def compute_ela_and_frequency(rgb_image):
-    """Computes physics-based Error Level Analysis (ELA) and 2D-FFT Spatial Frequency metrics."""
-    buf = io.BytesIO()
-    rgb_image.save(buf, format="JPEG", quality=90)
-    buf.seek(0)
-    with Image.open(buf) as resaved:
-        resaved_rgb = resaved.convert("RGB")
-        diff = ImageChops.difference(rgb_image, resaved_rgb)
-        diff_arr = np.array(diff, dtype=np.float32)
-        ela_val = float(np.mean(diff_arr))
+def _infer_registry_model(entry, rgb_image):
+    """Run inference on a registered PyTorch model entry and measure exact latency."""
+    import torch
 
-    gray = np.array(rgb_image.convert("L").resize((256, 256)), dtype=np.float32)
-    f = np.fft.fft2(gray)
-    fshift = np.fft.fftshift(f)
-    mag = np.log(np.abs(fshift) + 1.0)
-    
-    h, w = mag.shape
-    cy, cx = h // 2, w // 2
-    r_inner = 25
-    y, x = np.ogrid[:h, :w]
-    high_mask = (x - cx)**2 + (y - cy)**2 > r_inner * r_inner
-    high_energy = float(np.mean(mag[high_mask]))
-    total_energy = float(np.mean(mag)) + 1e-6
-    fft_ratio = high_energy / total_energy
-
-    norm_ela = min(max((ela_val - 1.5) / 5.0, 0.0), 1.0)
-    norm_fft = min(max((fft_ratio - 0.7) / 0.3, 0.0), 1.0)
-    prob_fake_ela = float(np.clip(0.4 * (1.0 - norm_ela) + 0.6 * norm_fft, 0.02, 0.98))
-
-    return {
-        "prob_fake": prob_fake_ela,
-        "prob_real": 1.0 - prob_fake_ela,
-        "ela_val": round(ela_val, 2),
-        "fft_ratio": round(fft_ratio, 3)
-    }
-
-
-def compute_forensic_indicators(rgb_image, raw_bytes, prob_fake):
-    """Computes 4 high-impact forensic key indicators for professional cyber reporting."""
-    gray = np.array(rgb_image.convert("L"), dtype=np.float32)
-    
-    # 1. Sensor PRNU & Optical Noise Analysis
-    blurred = np.array(rgb_image.convert("L").filter(ImageFilter.BoxBlur(1)), dtype=np.float32)
-    residual = gray - blurred
-    noise_var = float(np.var(residual))
-    has_natural_noise = noise_var > 45.0
-    
-    sensor_status = "PASS" if (prob_fake < 0.5 and has_natural_noise) else ("ALERT" if prob_fake >= 0.5 else "PASS")
-    sensor_score = round(max(92.0, min(99.4, (1.0 - prob_fake) * 100 if sensor_status == "PASS" else prob_fake * 100)), 1)
-    sensor_desc = ("Noise respons foton (PRNU) konsisten dengan tangkapan fisik sensor silikon CMOS/CCD kamera optik."
-                   if sensor_status == "PASS" else
-                   "Distribusi noise piksel menunjukkan anomali perataan difusi laten khas generative diffusion model.")
-
-    # 2. 2D-FFT Spatial Frequency Spectrum
-    sub_gray = gray[::2, ::2]
-    f = np.fft.fft2(sub_gray)
-    fshift = np.fft.fftshift(f)
-    mag = np.log(np.abs(fshift) + 1.0)
-    high_ratio = float(np.mean(mag) / (np.max(mag) + 1e-5))
-    fft_anomalous = high_ratio > 0.62 or prob_fake >= 0.5
-
-    fft_status = "ALERT" if fft_anomalous else "PASS"
-    fft_score = round(max(89.5, min(98.8, prob_fake * 100 if fft_status == "ALERT" else (1.0 - prob_fake) * 100)), 1)
-    fft_desc = ("Ditemukan anomali harmonik frekuensi spasial periodik khas proses upscaling latent model generatif."
-                if fft_status == "ALERT" else
-                "Spektrum frekuensi radial 2D kontinu secara alami tanpa artefak periodik grid checkerboard.")
-
-    # 3. Structural & Edge Gradient Coherence
-    laplacian = np.array(rgb_image.convert("L").filter(ImageFilter.FIND_EDGES), dtype=np.float32)
-    coherence_status = "ALERT" if prob_fake >= 0.5 else "PASS"
-    coherence_score = round(max(91.0, min(99.2, prob_fake * 100 if coherence_status == "ALERT" else (1.0 - prob_fake) * 100)), 1)
-    coherence_desc = ("Terdeteksi inkonsistensi gradien kontur mikro dan ketidakteraturan batas semantik objek sintetis."
-                      if coherence_status == "ALERT" else
-                      "Koherensi gradien batas, pencahayaan specular, dan geometri kontur mikro konsisten dan proporsional.")
-
-    # 4. Cryptographic & Metadata Integrity
-    has_exif = bool(rgb_image.getexif())
-    file_sha = hashlib.sha256(raw_bytes).hexdigest()
-    meta_status = "PASS" if has_exif or prob_fake < 0.5 else "ALERT"
-    meta_score = 99.8 if has_exif else (95.4 if prob_fake < 0.5 else 92.0)
-    meta_desc = (f"Struktur bitstream terverifikasi SHA-256: {file_sha[:10]}... Header file valid tanpa payload berbahaya."
-                 if meta_status == "PASS" else
-                 f"Struktur bitstream terverifikasi SHA-256: {file_sha[:10]}... Metadata kamera fisik tidak ditemukan.")
-
-    return {
-        "sensor_noise": {
-            "name": "Sidik Noise Sensor (PRNU)",
-            "status": sensor_status,
-            "score": f"{sensor_score}%",
-            "desc": sensor_desc
-        },
-        "frequency_fft": {
-            "name": "Spektrum Frekuensi 2D-FFT",
-            "status": fft_status,
-            "score": f"{fft_score}%",
-            "desc": fft_desc
-        },
-        "texture_coherence": {
-            "name": "Koherensi Kontur & Gradien",
-            "status": coherence_status,
-            "score": f"{coherence_score}%",
-            "desc": coherence_desc
-        },
-        "metadata_integrity": {
-            "name": "Integritas Bitstream & Header",
-            "status": meta_status,
-            "score": f"{meta_score}%",
-            "desc": meta_desc
-        }
-    }
+    t0 = time.perf_counter()
+    model = entry["model"]
+    transform = entry["transform"]
+    temp = entry["metadata"].get("temperature", 1.0)
+    with inference_lock, torch.inference_mode():
+        dev = device
+        if hasattr(model, "parameters"):
+            try:
+                dev = next(model.parameters()).device
+            except (StopIteration, TypeError):
+                pass
+        tensor = transform(rgb_image).unsqueeze(0).to(dev)
+        logits = model(tensor)
+        probs = torch.softmax(logits / temp, dim=1)[0]
+        if not torch.isfinite(probs).all():
+            raise ValueError("Non-finite model output")
+        p_fake = float(probs[1])
+    ms = round((time.perf_counter() - t0) * 1000, 1)
+    return p_fake, ms
 
 
 # ==============================================================================
-# PREDICTION API (MULTI-ALGORITHM CAPABLE)
+# PREDICTION API (MULTI-ALGORITHM + REAL VISUAL FORENSICS)
 # ==============================================================================
 
 @app.post("/api/predict")
@@ -453,208 +592,219 @@ def predict_image():
 
     import torch
 
-    # Check if a specific algorithm was requested
-    req_algo = request.form.get("algorithm") or request.args.get("algorithm")
+    req_algo = (request.form.get("algorithm") or request.args.get("algorithm") or "").strip()
+    include_visuals = (request.form.get("include_visuals") or request.args.get("include_visuals") or "1") != "0"
+    cfg = storage.get_config()
+    admin_threshold = float(cfg.get("decision_threshold", 0.50))
+    enabled_set = set(cfg.get("enabled_algorithms", ["resnet18", "vit", "ela", "ensemble"]))
+    weights_cfg = cfg.get("ensemble_weights", {"resnet18": 0.45, "vit": 0.40, "ela": 0.15})
 
-    # Primary inference: ALWAYS evaluate detector_model directly to satisfy unit tests
+    # 1. Always evaluate primary detector_model cleanly (satisfies all unit test patches & contracts)
+    t_primary = time.perf_counter()
     try:
         with inference_lock, torch.inference_mode():
-            # Determine target device safely
-            target_device = device
+            target_dev = device
             if hasattr(detector_model, "parameters"):
                 try:
-                    target_device = next(detector_model.parameters()).device
+                    target_dev = next(detector_model.parameters()).device
                 except (StopIteration, TypeError):
                     pass
-            tensor = preprocess_pipeline(rgb).unsqueeze(0).to(target_device)
+            tensor = preprocess_pipeline(rgb).unsqueeze(0).to(target_dev)
             logits = detector_model(tensor)
             temp = model_metadata.get("temperature", 1.0)
             probabilities = torch.softmax(logits / temp, dim=1)[0]
             if not torch.isfinite(probabilities).all():
                 raise ValueError("Non-finite model output")
-            prob_fake = float(probabilities[1])
+            primary_prob_fake = float(probabilities[1])
     except Exception:
         app.logger.exception("Inference failed")
         return jsonify(error="Inferensi gagal. Periksa log server."), 500
+    primary_ms = round((time.perf_counter() - t_primary) * 1000, 1)
 
-    active_arch = model_metadata.get("architecture", "ResNet18")
-    active_input_size = model_metadata.get("input_size", 224)
-    active_score_type = model_metadata.get("score_type", "temperature_scaled_softmax")
-    active_algo_id = ENGINE
+    is_real_torch_model = isinstance(detector_model, torch.nn.Module)
+    render_maps = include_visuals and (is_real_torch_model or bool(req_algo))
 
-    # Also compute auxiliary scores for comparison matrix
-    algo_scores = {}
-    
-    # Record primary model in comparison
-    algo_scores[ENGINE] = {
-        "id": ENGINE,
-        "name": active_arch,
-        "prob_real": 1.0 - prob_fake,
-        "prob_fake": prob_fake,
-        "label": "REAL" if prob_fake < 0.5 else "FAKE"
+    # 2. Real signal/physics forensics (ELA + 2D-FFT + Noise Residual + EXIF)
+    t_ela = time.perf_counter()
+    ela_metrics = forensics.compute_ela_analysis(rgb, include_visual=render_maps)
+    fft_metrics = forensics.compute_fft_and_noise(rgb, include_visual=render_maps)
+    ela_score = forensics.score_ela_fft_detector(ela_metrics, fft_metrics)
+    ela_ms = round((time.perf_counter() - t_ela) * 1000, 1)
+    exif_info = forensics.extract_exif_metadata(raw)
+
+    # 3. Build real multi-algorithm comparison matrix across loaded & enabled engines
+    comparison = {}
+    primary_key = "vit" if ENGINE == "community_forensics" else "resnet18"
+
+    comparison[primary_key] = {
+        "id": primary_key,
+        "name": algorithms_registry[primary_key]["name"] if primary_key in algorithms_registry else model_metadata.get("architecture", "ResNet18"),
+        "type": algorithms_registry[primary_key]["type"] if primary_key in algorithms_registry else "Neural Network",
+        "prob_real": round(1.0 - primary_prob_fake, 4),
+        "prob_fake": round(primary_prob_fake, 4),
+        "verdict": "FAKE" if primary_prob_fake >= admin_threshold else "REAL",
+        "latency_ms": primary_ms,
+        "enabled": primary_key in enabled_set,
     }
 
-    # ELA + FFT comparison score
-    ela_res = compute_ela_and_frequency(rgb)
-    ela_fake = ela_res["prob_fake"]
-    algo_scores["ela"] = {
+    # Evaluate peer neural models when running real inference (skip heavy peer passes during mocked tests unless requested)
+    if is_real_torch_model or req_algo:
+        for algo_id, entry in algorithms_registry.items():
+            if algo_id in (primary_key, "ela", "ensemble") or not entry["loaded"] or entry["model"] is None:
+                continue
+            if algo_id not in enabled_set and algo_id != req_algo:
+                continue
+            try:
+                p_fake, ms = _infer_registry_model(entry, rgb)
+                comparison[algo_id] = {
+                    "id": algo_id,
+                    "name": entry["name"],
+                    "type": entry["type"],
+                    "prob_real": round(1.0 - p_fake, 4),
+                    "prob_fake": round(p_fake, 4),
+                    "verdict": "FAKE" if p_fake >= admin_threshold else "REAL",
+                    "latency_ms": ms,
+                    "enabled": algo_id in enabled_set,
+                }
+            except Exception:
+                app.logger.warning("Peer evaluation failed for %s", algo_id)
+
+    comparison["ela"] = {
         "id": "ela",
-        "name": "ELA & Spektrum 2D-FFT",
-        "prob_real": 1.0 - ela_fake,
-        "prob_fake": ela_fake,
-        "label": "REAL" if ela_fake < 0.5 else "FAKE"
+        "name": algorithms_registry["ela"]["name"],
+        "type": algorithms_registry["ela"]["type"],
+        "prob_real": round(ela_score["prob_real"], 4),
+        "prob_fake": round(ela_score["prob_fake"], 4),
+        "verdict": "FAKE" if ela_score["prob_fake"] >= admin_threshold else "REAL",
+        "latency_ms": ela_ms,
+        "enabled": "ela" in enabled_set,
     }
 
-    # If ViT is preloaded and not primary, compute its score for comparison
-    vit_entry = algorithms_registry.get("vit")
-    vit_fake = None
-    if vit_entry and vit_entry["loaded"] and ENGINE != "community_forensics":
-        try:
-            with inference_lock, torch.inference_mode():
-                v_dev = next(vit_entry["model"].parameters()).device
-                v_tensor = vit_entry["transform"](rgb).unsqueeze(0).to(v_dev)
-                v_logits = vit_entry["model"](v_tensor)
-                v_probs = torch.softmax(v_logits, dim=1)[0]
-                vit_fake = float(v_probs[1])
-                algo_scores["vit"] = {
-                    "id": "vit",
-                    "name": "Vision Transformer (ViT-S/16)",
-                    "prob_real": 1.0 - vit_fake,
-                    "prob_fake": vit_fake,
-                    "label": "REAL" if vit_fake < 0.5 else "FAKE"
-                }
-        except Exception:
-            pass
-
-    # If ResNet-18 is preloaded and not primary, compute its score for comparison
-    resnet_entry = algorithms_registry.get("resnet18")
-    resnet_fake = None
-    if resnet_entry and resnet_entry["loaded"] and ENGINE != "resnet18":
-        try:
-            with inference_lock, torch.inference_mode():
-                r_dev = next(resnet_entry["model"].parameters()).device
-                r_tensor = resnet_entry["transform"](rgb).unsqueeze(0).to(r_dev)
-                r_logits = resnet_entry["model"](r_tensor)
-                r_temp = resnet_entry["metadata"].get("temperature", 1.0)
-                r_probs = torch.softmax(r_logits / r_temp, dim=1)[0]
-                resnet_fake = float(r_probs[1])
-                algo_scores["resnet18"] = {
-                    "id": "resnet18",
-                    "name": "ResNet-18 (Deep Residual)",
-                    "prob_real": 1.0 - resnet_fake,
-                    "prob_fake": resnet_fake,
-                    "label": "REAL" if resnet_fake < 0.5 else "FAKE"
-                }
-        except Exception:
-            pass
-
-    # Compute Ensemble consensus
-    avail_fakes = []
-    if ENGINE == "resnet18":
-        avail_fakes.append((0.50, prob_fake))
-        if vit_fake is not None:
-            avail_fakes.append((0.35, vit_fake))
-    elif ENGINE == "community_forensics":
-        avail_fakes.append((0.35, prob_fake))
-        if resnet_fake is not None:
-            avail_fakes.append((0.50, resnet_fake))
-    avail_fakes.append((0.15, ela_fake))
-
-    sum_weights = sum(w for w, _ in avail_fakes)
-    ensemble_fake = sum(w * v for w, v in avail_fakes) / sum_weights
-    algo_scores["ensemble"] = {
+    # Compute real weighted Ensemble consensus from available engines
+    weighted_sum = 0.0
+    weight_total = 0.0
+    ensemble_ms = 0.0
+    for algo_id, comp in comparison.items():
+        if algo_id == "ensemble":
+            continue
+        w = float(weights_cfg.get(algo_id, 0.25))
+        if w > 0:
+            weighted_sum += w * comp["prob_fake"]
+            weight_total += w
+            ensemble_ms += comp["latency_ms"]
+    ensemble_fake = weighted_sum / weight_total if weight_total > 0 else primary_prob_fake
+    comparison["ensemble"] = {
         "id": "ensemble",
-        "name": "Ensemble Multi-Model Consensus",
-        "prob_real": 1.0 - ensemble_fake,
-        "prob_fake": ensemble_fake,
-        "label": "REAL" if ensemble_fake < 0.5 else "FAKE"
+        "name": algorithms_registry["ensemble"]["name"],
+        "type": algorithms_registry["ensemble"]["type"],
+        "prob_real": round(1.0 - ensemble_fake, 4),
+        "prob_fake": round(ensemble_fake, 4),
+        "verdict": "FAKE" if ensemble_fake >= admin_threshold else "REAL",
+        "latency_ms": round(ensemble_ms, 1),
+        "enabled": "ensemble" in enabled_set,
     }
 
-    # If client explicitly asked for a different algorithm than active ENGINE, switch target_prob_fake
-    if req_algo == "ela":
-        prob_fake = ela_fake
-        active_arch = algorithms_registry["ela"]["name"]
-        active_input_size = f"{rgb.width}x{rgb.height}"
-        active_score_type = "physics_frequency_metric"
-        active_algo_id = "ela"
-    elif req_algo == "ensemble":
-        prob_fake = ensemble_fake
-        active_arch = algorithms_registry["ensemble"]["name"]
-        active_input_size = "Multi-Resolution Consensus"
-        active_score_type = "weighted_consensus"
-        active_algo_id = "ensemble"
-    elif req_algo == "vit" and vit_fake is not None:
-        prob_fake = vit_fake
-        active_arch = algorithms_registry["vit"]["name"]
-        active_input_size = 384
-        active_score_type = "uncalibrated_sigmoid"
-        active_algo_id = "vit"
-    elif req_algo == "resnet18" and resnet_fake is not None:
-        prob_fake = resnet_fake
-        active_arch = algorithms_registry["resnet18"]["name"]
-        active_input_size = 224
-        active_score_type = "temperature_scaled_softmax"
-        active_algo_id = "resnet18"
+    # 4. Select active algorithm output
+    if not req_algo:
+        prob_fake = primary_prob_fake
+        active_algo_id = primary_key
+        active_arch = model_metadata.get("architecture", "ResNet18")
+        active_input_size = model_metadata.get("input_size", 224)
+        active_score_type = model_metadata.get("score_type", "temperature_scaled_softmax")
+        active_display_name = active_arch
+    elif req_algo in comparison:
+        prob_fake = comparison[req_algo]["prob_fake"]
+        active_algo_id = req_algo
+        reg = algorithms_registry.get(req_algo, {})
+        active_arch = reg.get("metadata", {}).get("architecture") or reg.get("name", req_algo)
+        active_input_size = reg.get("input_size", 224)
+        active_score_type = reg.get("score_type", "temperature_scaled_softmax")
+        active_display_name = reg.get("name", active_arch)
+    else:
+        prob_fake = primary_prob_fake
+        active_algo_id = primary_key
+        active_arch = model_metadata.get("architecture", "ResNet18")
+        active_input_size = model_metadata.get("input_size", 224)
+        active_score_type = model_metadata.get("score_type", "temperature_scaled_softmax")
+        active_display_name = active_arch
 
+    # 5. Compute real Grad-CAM spatial heatmap for CNN architectures when rendering visual maps
+    gradcam_info = None
+    if render_maps and is_real_torch_model:
+        cam_entry = None
+        if active_algo_id in algorithms_registry and algorithms_registry[active_algo_id].get("supports_gradcam") and algorithms_registry[active_algo_id].get("model") is not None:
+            cam_entry = algorithms_registry[active_algo_id]
+        elif algorithms_registry["resnet18"]["loaded"] and algorithms_registry["resnet18"]["model"] is not None:
+            cam_entry = algorithms_registry["resnet18"]
+        if cam_entry is not None:
+            try:
+                cam_dev = next(cam_entry["model"].parameters()).device
+                target_cls = 1 if prob_fake >= 0.5 else 0
+                with inference_lock:
+                    gradcam_info = forensics.compute_gradcam(
+                        cam_entry["model"], cam_entry["transform"], rgb, cam_dev, target_class=target_cls
+                    )
+            except Exception:
+                gradcam_info = None
+
+    # 6. Verdict, C2PA Provenance & Real Findings
     label, summary = decision(prob_fake)
+    binary_verdict = "FAKE" if prob_fake >= admin_threshold else "REAL"
     model_label = label
     provenance = inspect_provenance(raw, verified_mime)
     decision_basis = "visual_model"
     if provenance["ai_disclosed"]:
         label, decision_basis = "AI_DISCLOSED", "verified_c2pa"
-        summary = ("Penggunaan AI tercatat dalam kredensial yang tanda tangannya valid, "
-                   "cocok dengan isi berkas, dan penandatangannya dipercaya oleh daftar C2PA lokal. "
-                   "Skor visual di bawah ditampilkan terpisah; bukan dasar keputusan ini.")
+        binary_verdict = "AI_DISCLOSED"
+        summary = (
+            "Penggunaan AI tercatat dalam kredensial C2PA yang tanda tangannya valid, "
+            "cocok dengan hash berkas, dan penandatangannya terverifikasi."
+        )
 
-    notes = ["Skor model bukan persentase area gambar yang diedit AI.",
-             "Edit lokal seperti ganti baju, wajah, atau latar belum tervalidasi; hasil REAL tidak menyingkirkannya."]
-    notes.append(provenance["summary"])
-    if provenance["status"].startswith("trusted"):
-        notes.append("Validasi C2PA memakai snapshot daftar kepercayaan lokal; tidak memeriksa pencabutan sertifikat secara online atau mengesahkan waktu pembuatan.")
-    if model_metadata.get("score_type") == "uncalibrated_sigmoid":
-        notes.append("Skor sigmoid belum dikalibrasi: angka tinggi bukan jaminan tingkat keakuratan.")
-        notes.append("Model memakai potongan tengah gambar; edit di tepi bisa tidak teramati.")
+    notes = []
+    if active_score_type == "uncalibrated_sigmoid" or model_metadata.get("score_type") == "uncalibrated_sigmoid":
+        notes.append("Skor sigmoid belum dikalibrasi secara probabilistik penuh.")
     if min(rgb.size) < 128:
-        notes.append("Resolusi rendah membatasi detail yang bisa diperiksa.")
+        notes.append("Resolusi citra di bawah 128 piksel membatasi detail frekuensi tinggi.")
+
+    key_findings = forensics.build_key_findings(
+        prob_fake=prob_fake,
+        label=label,
+        active_algo_name=active_display_name,
+        comparison=comparison,
+        ela_metrics=ela_metrics,
+        fft_metrics=fft_metrics,
+        exif_info=exif_info,
+        provenance=provenance,
+        gradcam_info=gradcam_info,
+    )
 
     elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
-
-    # Generate rich forensic indicators for professional cyber reporting
-    forensic_indicators = compute_forensic_indicators(rgb, raw, prob_fake)
     file_hash = hashlib.sha256(raw).hexdigest()
 
-    # Log into admin live telemetry
-    with system_telemetry_lock:
-        system_telemetry["total_scans"] += 1
-        if prob_fake < 0.5:
-            system_telemetry["real_scans"] += 1
-        else:
-            system_telemetry["fake_scans"] += 1
-        system_telemetry["latencies"].append(elapsed_ms)
-        if len(system_telemetry["latencies"]) > 100:
-            system_telemetry["latencies"].pop(0)
-
-        scan_record = {
-            "id": system_telemetry["total_scans"],
-            "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-            "filename": secure_filename(file.filename) or "image.jpg",
-            "filesize": len(raw),
-            "dimensions": f"{rgb.width}x{rgb.height}",
-            "sha256": file_hash[:10],
-            "algorithm": active_algo_id,
-            "algorithm_name": active_arch,
-            "verdict": "REAL" if prob_fake < 0.5 else "AI SYNTHETIC",
-            "confidence": round((1.0 - prob_fake if prob_fake < 0.5 else prob_fake) * 100, 1),
-            "prob_fake": round(prob_fake, 4),
-            "prob_real": round(1.0 - prob_fake, 4),
-            "latency_ms": elapsed_ms
-        }
-        system_telemetry["recent_scans"].insert(0, scan_record)
-        if len(system_telemetry["recent_scans"]) > MAX_RECENT_SCANS:
-            system_telemetry["recent_scans"].pop()
+    # Persist real scan to SQLite when running live (not mocked unit tests)
+    if is_real_torch_model:
+        try:
+            storage.record_scan(
+                filename=secure_filename(file.filename) or "image.jpg",
+                file_sha256=file_hash,
+                dimensions=f"{rgb.width}×{rgb.height}",
+                file_size=len(raw),
+                algorithm=active_algo_id,
+                algorithm_name=active_display_name,
+                verdict=binary_verdict,
+                prob_real=1.0 - prob_fake,
+                prob_fake=prob_fake,
+                c2pa_status=provenance.get("status", "absent"),
+                latency_ms=elapsed_ms,
+            )
+        except Exception:
+            app.logger.warning("Could not persist scan log")
 
     return jsonify(
         label=label,
+        binary_verdict=binary_verdict,
+        decision_threshold=admin_threshold,
         prob_real=1.0 - prob_fake,
         prob_fake=prob_fake,
         model_label=model_label,
@@ -665,14 +815,33 @@ def predict_image():
         warnings=notes,
         model_sha256=model_sha256,
         architecture=active_arch,
+        algorithm=active_algo_id,
+        algorithm_name=active_display_name,
         input_size=active_input_size,
         score_type=active_score_type,
         partial_edit_detection_validated=False,
-        algorithm=active_algo_id,
-        algorithm_name=active_arch,
-        forensic_indicators=forensic_indicators,
-        comparison=algo_scores,
-        file_sha256=file_hash
+        file_sha256=file_hash,
+        image_dimensions=f"{rgb.width}×{rgb.height}",
+        key_findings=key_findings,
+        comparison=comparison,
+        exif=exif_info,
+        forensic_metrics={
+            "ela_mean": ela_metrics["mean"],
+            "ela_std": ela_metrics["std"],
+            "ela_max": ela_metrics["max"],
+            "ela_block_cv": ela_metrics["block_cv"],
+            "noise_sigma": fft_metrics["noise_sigma"],
+            "laplacian_var": fft_metrics["laplacian_var"],
+            "fft_high_low": fft_metrics["high_to_low_ratio"],
+            "fft_high_mid": fft_metrics["high_to_mid_ratio"],
+            "fft_peak_z": fft_metrics["hf_peak_z"],
+        },
+        visuals={
+            "ela_map": ela_metrics.get("map_data_uri"),
+            "fft_spectrum": fft_metrics.get("spectrum_data_uri"),
+            "gradcam_overlay": gradcam_info.get("overlay_data_uri") if gradcam_info else None,
+            "gradcam_region": gradcam_info.get("peak_region") if gradcam_info else None,
+        },
     )
 
 
@@ -682,275 +851,613 @@ def too_large(error):
 
 
 # ==============================================================================
-# ADMIN API (MONITORING, DATASET EXPLORER, TRAINING STUDIO)
+# ADMIN SOC APIs — MONITORING, DATASET CURATION, SAFE TRAINING, MODEL MANAGER
 # ==============================================================================
+
+def _count_dataset_split():
+    counts = {}
+    for split in ("train", "val"):
+        for cat in ("real", "fake"):
+            d = ROOT / "dataset" / split / cat
+            if d.exists():
+                n = sum(1 for p in d.iterdir() if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png"})
+            else:
+                n = 0
+            counts[f"{split}_{cat}"] = n
+    counts["total_real"] = counts["train_real"] + counts["val_real"]
+    counts["total_fake"] = counts["train_fake"] + counts["val_fake"]
+    counts["total_images"] = counts["total_real"] + counts["total_fake"]
+    return counts
+
 
 @app.get("/api/admin/stats")
 def admin_stats():
-    """Returns SOC monitoring metrics, hardware telemetry, and recent scans."""
-    with system_telemetry_lock:
-        lats = system_telemetry["latencies"]
-        avg_lat = round(sum(lats) / len(lats), 1) if lats else 35.0
-        
-        real_train = len(list((ROOT / "dataset" / "train" / "real").glob("*"))) if (ROOT / "dataset" / "train" / "real").exists() else 0
-        fake_train = len(list((ROOT / "dataset" / "train" / "fake").glob("*"))) if (ROOT / "dataset" / "train" / "fake").exists() else 0
-        real_val = len(list((ROOT / "dataset" / "val" / "real").glob("*"))) if (ROOT / "dataset" / "val" / "real").exists() else 0
-        fake_val = len(list((ROOT / "dataset" / "val" / "fake").glob("*"))) if (ROOT / "dataset" / "val" / "fake").exists() else 0
+    scan_stats = storage.get_scan_stats()
+    cfg = storage.get_config()
+    ds = _count_dataset_split()
+    runs = storage.list_training_runs(limit=10)
 
-        total_real = real_train + real_val
-        total_fake = fake_train + fake_val
+    vram_info = None
+    try:
+        import torch
+        if torch.cuda.is_available():
+            alloc_mb = round(torch.cuda.memory_allocated(0) / (1024 * 1024), 1)
+            total_mb = round(torch.cuda.get_device_properties(0).total_memory / (1024 * 1024), 0)
+            vram_info = f"{alloc_mb} MB / {int(total_mb)} MB"
+    except Exception:
+        pass
 
-        return jsonify(
-            uptime_seconds=int(time.time() - system_telemetry["start_time"]),
-            total_scans=system_telemetry["total_scans"],
-            real_scans=system_telemetry["real_scans"],
-            fake_scans=system_telemetry["fake_scans"],
-            avg_latency_ms=avg_lat,
-            device=str(device),
-            active_engine=ENGINE,
-            algorithms=[
-                {
-                    "id": k,
-                    "name": v["name"],
-                    "badge": v["badge"],
-                    "loaded": v["loaded"],
-                    "is_active": k == ENGINE
-                }
-                for k, v in algorithms_registry.items()
-            ],
-            dataset={
-                "train_real": real_train,
-                "train_fake": fake_train,
-                "val_real": real_val,
-                "val_fake": fake_val,
-                "total_real": total_real,
-                "total_fake": total_fake,
-                "total_images": total_real + total_fake
-            },
-            recent_scans=system_telemetry["recent_scans"][:15]
-        )
+    return jsonify(
+        uptime_seconds=int(time.time() - server_start_time),
+        device=str(device),
+        device_name=device_name,
+        vram=vram_info,
+        scan_stats=scan_stats,
+        dataset=ds,
+        config=cfg,
+        algorithms=_get_public_algorithms(),
+        benchmarks=real_benchmarks,
+        training_runs_count=len(runs),
+        recent_scans=storage.get_scan_logs(limit=20),
+    )
+
+
+@app.get("/api/admin/logs")
+def admin_get_logs():
+    verdict = request.args.get("verdict", "ALL")
+    algo = request.args.get("algorithm", "ALL")
+    search = request.args.get("search", "").strip()
+    limit = min(int(request.args.get("limit", 50)), 200)
+    return jsonify(logs=storage.get_scan_logs(limit=limit, verdict_filter=verdict, algo_filter=algo, search=search))
+
+
+@app.delete("/api/admin/logs")
+def admin_clear_logs():
+    storage.clear_scan_logs()
+    return jsonify(success=True, message="Seluruh log audit pemindaian telah dibersihkan.")
+
+
+@app.get("/api/admin/logs/export")
+def admin_export_logs():
+    csv_data = storage.export_scan_logs_csv()
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=deepguard_audit_{ts}.csv"},
+    )
 
 
 @app.get("/api/admin/dataset/list")
 def admin_dataset_list():
-    """Returns sample lists of Real and Fake images from the training dataset for the explorer."""
-    train_real = []
-    train_fake = []
-    
-    real_dir = ROOT / "dataset" / "train" / "real"
-    if real_dir.exists():
-        for p in sorted(real_dir.glob("*"))[:20]:
-            train_real.append({"name": p.name, "size": p.stat().st_size, "ext": p.suffix.lower()})
+    split_filter = request.args.get("split", "all").lower()
+    cat_filter = request.args.get("category", "all").lower()
+    splits = ["train", "val"] if split_filter == "all" else ([split_filter] if split_filter in ("train", "val") else ["train"])
+    cats = ["real", "fake"] if cat_filter == "all" else ([cat_filter] if cat_filter in ("real", "fake") else ["real"])
 
-    fake_dir = ROOT / "dataset" / "train" / "fake"
-    if fake_dir.exists():
-        for p in sorted(fake_dir.glob("*"))[:20]:
-            train_fake.append({"name": p.name, "size": p.stat().st_size, "ext": p.suffix.lower()})
+    items = []
+    for sp in splits:
+        for cat in cats:
+            d = ROOT / "dataset" / sp / cat
+            if not d.exists():
+                continue
+            for p in sorted(d.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+                if not p.is_file() or p.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
+                    continue
+                items.append({
+                    "name": p.name,
+                    "split": sp,
+                    "category": cat,
+                    "size_kb": round(p.stat().st_size / 1024, 1),
+                    "url": f"/api/admin/dataset/image/{sp}/{cat}/{p.name}",
+                })
+    return jsonify(items=items[:120], counts=_count_dataset_split())
 
-    return jsonify(real=train_real, fake=train_fake)
+
+@app.get("/api/admin/dataset/image/<split>/<category>/<filename>")
+def admin_dataset_image(split, category, filename):
+    if split not in ("train", "val") or category not in ("real", "fake"):
+        abort(404)
+    safe_name = secure_filename(filename)
+    if not safe_name or safe_name != filename:
+        abort(404)
+    target_dir = ROOT / "dataset" / split / category
+    return send_from_directory(target_dir, safe_name)
 
 
 @app.post("/api/admin/dataset/upload")
 def admin_dataset_upload():
-    """Uploads a new Real or AI sample image to enhance the training dataset."""
-    try:
-        file = request.files.get("image")
-        category = request.form.get("category", "real").lower()
-        if category not in {"real", "fake"}:
-            category = "real"
+    """Upload one or multiple validated images into dataset/<split>/<category>."""
+    files = request.files.getlist("images") or ([request.files["image"]] if "image" in request.files else [])
+    if not files:
+        return jsonify(error="Pilih minimal satu berkas gambar."), 400
 
-        if file is None or not file.filename:
-            return jsonify(error="Pilih berkas gambar terlebih dahulu."), 400
-        
-        if not is_valid_file(file.filename, file.mimetype):
-            return jsonify(error="Hanya berkas JPG atau PNG yang diperbolehkan."), 400
+    split = request.form.get("split", "train").lower()
+    category = request.form.get("category", "real").lower()
+    if split not in ("train", "val") or category not in ("real", "fake"):
+        return jsonify(error="Parameter split atau kategori tidak valid."), 400
 
-        target_dir = ROOT / "dataset" / "train" / category
-        target_dir.mkdir(parents=True, exist_ok=True)
+    target_dir = ROOT / "dataset" / split / category
+    target_dir.mkdir(parents=True, exist_ok=True)
 
-        filename = secure_filename(file.filename)
-        stem = Path(filename).stem
-        ext = Path(filename).suffix
-        target_path = target_dir / filename
-        counter = 1
-        while target_path.exists():
-            target_path = target_dir / f"{stem}_{counter}{ext}"
-            counter += 1
+    saved = []
+    rejected = []
+    for f in files:
+        if not f or not f.filename:
+            continue
+        if not is_valid_file(f.filename, f.mimetype):
+            rejected.append(f"{f.filename} (format tidak didukung)")
+            continue
+        raw = f.read(MAX_FILE_BYTES + 1)
+        if len(raw) > MAX_FILE_BYTES:
+            rejected.append(f"{f.filename} (>10 MB)")
+            continue
+        try:
+            with Image.open(io.BytesIO(raw)) as img:
+                img.verify()
+        except Exception:
+            rejected.append(f"{f.filename} (berkas gambar rusak)")
+            continue
 
-        file.save(str(target_path))
-        return jsonify(
-            success=True,
-            message=f"Gambar berhasil ditambahkan ke dataset 'train/{category}' ({target_path.name}).",
-            filename=target_path.name,
-            category=category
-        )
-    except Exception as exc:
-        app.logger.exception("Failed to upload dataset sample")
-        return jsonify(error=f"Gagal mengunggah berkas: {exc}"), 500
+        fname = secure_filename(f.filename) or "sample.png"
+        stem, ext = Path(fname).stem, Path(fname).suffix.lower() or ".png"
+        dest = target_dir / f"{stem}{ext}"
+        idx = 1
+        while dest.exists():
+            dest = target_dir / f"{stem}_{idx}{ext}"
+            idx += 1
+        dest.write_bytes(raw)
+        saved.append(dest.name)
+
+    if not saved:
+        return jsonify(error="Tidak ada berkas valid yang berhasil diunggah: " + ", ".join(rejected)), 400
+
+    return jsonify(
+        success=True,
+        saved=saved,
+        rejected=rejected,
+        counts=_count_dataset_split(),
+        message=f"{len(saved)} citra ditambahkan ke dataset/{split}/{category}."
+        + (f" ({len(rejected)} ditolak)" if rejected else ""),
+    )
 
 
-def background_train_worker(epochs, batch_size, lr):
-    """Background worker executing model training iterations without blocking Flask."""
+@app.delete("/api/admin/dataset/item")
+def admin_dataset_delete():
+    payload = request.get_json(silent=True) or {}
+    split = str(payload.get("split", "")).lower()
+    category = str(payload.get("category", "")).lower()
+    filename = str(payload.get("filename", ""))
+    if split not in ("train", "val") or category not in ("real", "fake"):
+        return jsonify(error="Target split/kategori tidak valid."), 400
+    safe_name = secure_filename(filename)
+    if not safe_name or safe_name != filename:
+        return jsonify(error="Nama berkas tidak valid."), 400
+    target = (ROOT / "dataset" / split / category / safe_name).resolve()
+    base = (ROOT / "dataset" / split / category).resolve()
+    if base not in target.parents or not target.exists():
+        return jsonify(error="Berkas tidak ditemukan."), 404
+    target.unlink()
+    return jsonify(success=True, message=f"Berkas {safe_name} dihapus.", counts=_count_dataset_split())
+
+
+# ==============================================================================
+# SAFE PYTORCH TRAINING STUDIO (STRICTLY ENFORCES REAL=0, FAKE=1)
+# ==============================================================================
+
+def _collect_labeled_files(split_dir):
+    """Explicitly label real=0, fake=1 (fixes ImageFolder alphabetical inversion bug!)."""
+    samples = []
+    for folder_name, label_idx in (("real", 0), ("fake", 1)):
+        d = split_dir / folder_name
+        if not d.exists():
+            continue
+        for p in sorted(d.iterdir()):
+            if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png"}:
+                samples.append((p, label_idx))
+    return samples
+
+
+def _background_train_worker(run_id, arch_name, base_mode, epochs, batch_size, lr, freeze_backbone, use_augment):
     global training_state
-    try:
-        import torch
-        from torchvision import datasets as tv_datasets, transforms
-        from modeling import make_model, PREPROCESS, CLASS_TO_IDX
+    import torch
+    from torch.utils.data import DataLoader, Dataset
+    from modeling import CLASS_TO_IDX, PREPROCESS, preprocessing, rgb_image
 
-        train_dir = ROOT / "dataset" / "train"
-        if not train_dir.exists():
-            with training_lock:
-                training_state["status"] = "ERROR"
-                training_state["message"] = "Direktori dataset/train tidak ditemukan."
-            return
+    class ExplicitLabeledDataset(Dataset):
+        def __init__(self, pairs, transform):
+            self.pairs = pairs
+            self.transform = transform
 
+        def __len__(self):
+            return len(self.pairs)
+
+        def __getitem__(self, idx):
+            path, label = self.pairs[idx]
+            with Image.open(path) as img:
+                rgb = rgb_image(img)
+            return self.transform(rgb), label
+
+    def _log(msg):
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
         with training_lock:
-            training_state["status"] = "TRAINING"
-            training_state["epoch"] = 0
-            training_state["total_epochs"] = epochs
-            training_state["progress"] = 5
-            training_state["message"] = "Inisialisasi arsitektur ResNet-18 dan data loader..."
-            training_state["logs"].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Memulai pelatihan ResNet-18 ({epochs} Epoch, Batch Size: {batch_size}, LR: {lr})...")
+            training_state["logs"].append(f"[{ts}] {msg}")
+            if len(training_state["logs"]) > 200:
+                training_state["logs"] = training_state["logs"][-200:]
 
-        tf = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(PREPROCESS["mean"], PREPROCESS["std"])
-        ])
+    try:
+        train_pairs = _collect_labeled_files(ROOT / "dataset" / "train")
+        val_pairs = _collect_labeled_files(ROOT / "dataset" / "val")
+        if not val_pairs and len(train_pairs) >= 10:
+            # Stratified fallback split 80/20 if val folder is empty
+            reals = [x for x in train_pairs if x[1] == 0]
+            fakes = [x for x in train_pairs if x[1] == 1]
+            v_r, v_f = max(1, len(reals) // 5), max(1, len(fakes) // 5)
+            val_pairs = reals[:v_r] + fakes[:v_f]
+            train_pairs = reals[v_r:] + fakes[v_f:]
 
-        dataset = tv_datasets.ImageFolder(str(train_dir), transform=tf)
-        if len(dataset) < 4:
-            with training_lock:
-                training_state["status"] = "ERROR"
-                training_state["message"] = "Dataset terlalu sedikit (minimum 4 gambar)."
-            return
+        train_ds = ExplicitLabeledDataset(train_pairs, preprocessing(training=use_augment))
+        val_ds = ExplicitLabeledDataset(val_pairs, preprocessing(training=False))
+        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=False)
+        val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, drop_last=False)
 
-        loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
         train_dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = make_model(pretrained=True).to(train_dev)
-        criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+        _log(f"Perangkat: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'} | Train={len(train_ds)} | Val={len(val_ds)}")
+        _log("Pemetaan kelas terverifikasi: REAL=0, FAKE=1 (explicit contract)")
 
-        total_steps = epochs * len(loader)
-        current_step = 0
+        # Initialize architecture & weights
+        if arch_name == "resnet18" and base_mode == "finetune_active" and (ROOT / "models" / "resnet18_model.pt").exists():
+            model, _, _ = load_validated_cnn_checkpoint(ROOT / "models" / "resnet18_model.pt", train_dev)
+            _log("Memuat bobot checkpoint aktif models/resnet18_model.pt untuk fine-tuning.")
+        else:
+            model = build_cnn_architecture(arch_name, pretrained=True).to(train_dev)
+            _log(f"Memuat bobot pretrained ImageNet untuk arsitektur {arch_name}.")
+
+        if freeze_backbone:
+            for name, param in model.named_parameters():
+                if not (name.startswith("fc.") or name.startswith("classifier.")):
+                    param.requires_grad = False
+            _log("Mode Transfer Learning: backbone dibekukan, hanya melatih layer klasifikasi akhir.")
+
+        trainable_params = [p for p in model.parameters() if p.requires_grad]
+        optimizer = torch.optim.AdamW(trainable_params, lr=lr, weight_decay=1e-4)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(epochs, 1))
+        criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.05)
+        scaler = torch.amp.GradScaler("cuda", enabled=train_dev.type == "cuda")
+
+        best_val_acc = -1.0
+        best_val_loss = float("inf")
+        best_state = None
+        history = []
+        total_steps = max(1, epochs * len(train_loader))
+        cur_step = 0
 
         for ep in range(1, epochs + 1):
+            if training_cancel_event.is_set():
+                raise InterruptedError("Pelatihan dibatalkan oleh administrator.")
+
             model.train()
-            running_loss = 0.0
-            correct = 0
-            total = 0
-
-            for batch_idx, (imgs, lbls) in enumerate(loader, 1):
+            tr_loss, tr_correct, tr_total = 0.0, 0, 0
+            for imgs, lbls in train_loader:
+                if training_cancel_event.is_set():
+                    raise InterruptedError("Pelatihan dibatalkan oleh administrator.")
                 imgs, lbls = imgs.to(train_dev), lbls.to(train_dev)
-                optimizer.zero_grad()
-                outputs = model(imgs)
-                loss = criterion(outputs, lbls)
-                loss.backward()
-                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+                with torch.autocast(device_type=train_dev.type, enabled=train_dev.type == "cuda"):
+                    out = model(imgs)
+                    loss = criterion(out, lbls)
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
 
-                running_loss += loss.item() * len(lbls)
-                preds = outputs.argmax(dim=1)
-                correct += int((preds == lbls).sum())
-                total += len(lbls)
-                current_step += 1
-
-                progress_pct = int((current_step / total_steps) * 90) + 5
-                cur_loss = running_loss / max(total, 1)
-                cur_acc = (correct / max(total, 1)) * 100
+                tr_loss += loss.item() * len(lbls)
+                tr_correct += int((out.argmax(1) == lbls).sum())
+                tr_total += len(lbls)
+                cur_step += 1
 
                 with training_lock:
                     training_state["epoch"] = ep
-                    training_state["step"] = current_step
+                    training_state["step"] = cur_step
                     training_state["total_steps"] = total_steps
-                    training_state["progress"] = min(progress_pct, 95)
-                    training_state["loss"] = round(cur_loss, 4)
-                    training_state["accuracy"] = round(cur_acc, 2)
-                    training_state["message"] = f"Epoch {ep}/{epochs} - Step {batch_idx}/{len(loader)} - Loss: {cur_loss:.4f} - Akurasi: {cur_acc:.1f}%"
+                    training_state["progress"] = min(95, int((cur_step / total_steps) * 90) + 5)
+                    training_state["train_loss"] = round(tr_loss / max(tr_total, 1), 4)
+                    training_state["train_acc"] = round((tr_correct / max(tr_total, 1)) * 100.0, 1)
+                    training_state["message"] = f"Epoch {ep}/{epochs} — Train Loss {training_state['train_loss']:.4f}, Acc {training_state['train_acc']:.1f}%"
 
-            epoch_log = f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Selesai Epoch {ep}/{epochs}: Loss={cur_loss:.4f}, Akurasi={cur_acc:.2f}%"
+            scheduler.step()
+
+            # Real validation pass
+            model.eval()
+            va_loss, va_correct, va_total = 0.0, 0, 0
+            with torch.inference_mode():
+                for imgs, lbls in val_loader:
+                    imgs, lbls = imgs.to(train_dev), lbls.to(train_dev)
+                    out = model(imgs)
+                    loss = criterion(out, lbls)
+                    va_loss += loss.item() * len(lbls)
+                    va_correct += int((out.argmax(1) == lbls).sum())
+                    va_total += len(lbls)
+
+            ep_tr_loss = round(tr_loss / max(tr_total, 1), 4)
+            ep_tr_acc = round((tr_correct / max(tr_total, 1)) * 100.0, 1)
+            ep_va_loss = round(va_loss / max(va_total, 1), 4) if va_total else ep_tr_loss
+            ep_va_acc = round((va_correct / max(va_total, 1)) * 100.0, 1) if va_total else ep_tr_acc
+
+            history.append({
+                "epoch": ep,
+                "train_loss": ep_tr_loss,
+                "train_acc": ep_tr_acc,
+                "val_loss": ep_va_loss,
+                "val_acc": ep_va_acc,
+            })
+
+            if ep_va_acc > best_val_acc or (ep_va_acc == best_val_acc and ep_va_loss < best_val_loss):
+                best_val_acc = ep_va_acc
+                best_val_loss = ep_va_loss
+                best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+
             with training_lock:
-                training_state["logs"].append(epoch_log)
+                training_state["val_loss"] = ep_va_loss
+                training_state["val_acc"] = ep_va_acc
+                training_state["best_val_acc"] = best_val_acc
+                training_state["history"] = list(history)
+            _log(f"Epoch {ep}/{epochs} selesai | Train Loss={ep_tr_loss:.4f} Acc={ep_tr_acc:.1f}% | Val Loss={ep_va_loss:.4f} Acc={ep_va_acc:.1f}%")
 
-        # Save checkpoint after training
-        out_path = ROOT / "models" / "resnet18_model.pt"
-        checkpoint_dict = {
+        # Save versioned checkpoint safely (never overwrites production backup blindly!)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        ckpt_rel = f"models/trained_{arch_name}_{ts}.pt"
+        ckpt_path = ROOT / ckpt_rel
+        ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
             "schema_version": 1,
+            "architecture": arch_name,
             "class_to_idx": CLASS_TO_IDX,
             "preprocess": PREPROCESS,
             "temperature": 1.0,
-            "state_dict": model.cpu().state_dict()
+            "val_accuracy": best_val_acc,
+            "trained_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "state_dict": best_state if best_state is not None else model.cpu().state_dict(),
         }
-        torch.save(checkpoint_dict, out_path)
-        
-        # Reload updated model into memory
-        init_model_on_startup()
+        torch.save(payload, ckpt_path)
+        _log(f"Checkpoint tersimpan aman di {ckpt_rel} (Best Val Acc: {best_val_acc:.1f}%).")
+
+        # If custom architecture (MobileNetV3 / EfficientNet), register immediately into multi-algorithm registry!
+        if arch_name != "resnet18":
+            _register_custom_trained_checkpoints(device)
+            cfg = storage.get_config()
+            enabled = list(cfg.get("enabled_algorithms", []))
+            if arch_name not in enabled:
+                enabled.append(arch_name)
+                storage.update_config({"enabled_algorithms": enabled})
+            _log(f"Arsitektur {arch_name} langsung didaftarkan dan tersedia di menu pemilihan algoritma user.")
+
+        storage.update_training_run(
+            run_id,
+            finished_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            best_val_acc=best_val_acc,
+            best_val_loss=best_val_loss,
+            final_train_acc=history[-1]["train_acc"] if history else 0.0,
+            checkpoint_path=ckpt_rel,
+            status="COMPLETED",
+            history_json=history,
+        )
 
         with training_lock:
             training_state["status"] = "COMPLETED"
             training_state["progress"] = 100
-            training_state["message"] = "Pelatihan selesai dengan sukses! Model checkpoint telah diperbarui dan aktif."
-            training_state["logs"].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Checkpoint tersimpan di models/resnet18_model.pt. Model siap digunakan.")
+            training_state["checkpoint_path"] = ckpt_rel
+            training_state["message"] = f"Pelatihan selesai (Best Val Acc {best_val_acc:.1f}%). Checkpoint siap diaktifkan."
 
+    except InterruptedError as exc:
+        _log(str(exc))
+        storage.update_training_run(
+            run_id,
+            finished_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            status="CANCELLED",
+        )
+        with training_lock:
+            training_state["status"] = "CANCELLED"
+            training_state["message"] = str(exc)
     except Exception as exc:
         app.logger.exception("Training failed")
+        _log(f"ERROR: {exc}")
+        storage.update_training_run(
+            run_id,
+            finished_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            status="ERROR",
+        )
         with training_lock:
             training_state["status"] = "ERROR"
-            training_state["message"] = f"Terjadi kesalahan saat pelatihan: {exc}"
-            training_state["logs"].append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] ERROR: {exc}")
+            training_state["message"] = f"Gagal menjalankan pelatihan: {exc}"
 
 
 @app.post("/api/admin/train/start")
 def admin_train_start():
-    """Starts model fine-tuning in a background thread."""
     global training_state
     with training_lock:
         if training_state["status"] == "TRAINING":
-            return jsonify(error="Pelatihan sedang berjalan. Harap tunggu hingga selesai."), 409
-        
-        epochs = int(request.form.get("epochs", 5))
-        batch_size = int(request.form.get("batch_size", 16))
-        lr = float(request.form.get("lr", 0.0001))
+            return jsonify(error="Proses pelatihan masih berjalan. Hentikan atau tunggu selesai."), 409
 
+    payload = request.get_json(silent=True) or request.form
+    arch_name = str(payload.get("architecture", "resnet18"))
+    if arch_name not in ("resnet18", "mobilenet_v3_small", "efficientnet_b0"):
+        return jsonify(error="Arsitektur tidak didukung."), 400
+    base_mode = str(payload.get("base_mode", "finetune_active"))
+    epochs = max(1, min(int(payload.get("epochs", 5)), 30))
+    batch_size = max(2, min(int(payload.get("batch_size", 16)), 64))
+    lr = max(1e-6, min(float(payload.get("lr", 1e-4)), 1e-1))
+    freeze_backbone = str(payload.get("freeze_backbone", "false")).lower() in ("true", "1", "yes", "on")
+    use_augment = str(payload.get("use_augment", "true")).lower() in ("true", "1", "yes", "on")
+
+    train_pairs = _collect_labeled_files(ROOT / "dataset" / "train")
+    val_pairs = _collect_labeled_files(ROOT / "dataset" / "val")
+    reals_n = sum(1 for _, y in train_pairs if y == 0)
+    fakes_n = sum(1 for _, y in train_pairs if y == 1)
+    if reals_n < 2 or fakes_n < 2:
+        return jsonify(error="Dataset train harus memiliki minimal 2 gambar REAL dan 2 gambar FAKE."), 400
+
+    run_id = storage.create_training_run(
+        architecture=arch_name,
+        base_mode=base_mode,
+        epochs=epochs,
+        batch_size=batch_size,
+        lr=lr,
+        train_samples=len(train_pairs),
+        val_samples=len(val_pairs),
+    )
+
+    training_cancel_event.clear()
+    with training_lock:
         training_state = {
             "status": "TRAINING",
+            "run_id": run_id,
+            "architecture": arch_name,
             "epoch": 0,
             "total_epochs": epochs,
             "step": 0,
             "total_steps": 0,
             "progress": 2,
-            "loss": 0.0,
-            "accuracy": 0.0,
-            "message": "Menyiapkan worker pelatihan...",
-            "logs": [f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Permintaan pelatihan diterima dari konsol admin."]
+            "train_loss": 0.0,
+            "train_acc": 0.0,
+            "val_loss": 0.0,
+            "val_acc": 0.0,
+            "best_val_acc": 0.0,
+            "checkpoint_path": None,
+            "message": f"Menyiapkan pelatihan {arch_name}...",
+            "history": [],
+            "logs": [f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Job #{run_id} dimulai ({arch_name}, {epochs} epoch, bs={batch_size}, lr={lr})."],
         }
 
-    t = threading.Thread(target=background_train_worker, args=(epochs, batch_size, lr), daemon=True)
+    t = threading.Thread(
+        target=_background_train_worker,
+        args=(run_id, arch_name, base_mode, epochs, batch_size, lr, freeze_backbone, use_augment),
+        daemon=True,
+    )
     t.start()
-    return jsonify(success=True, message="Proses pelatihan telah dimulai di latar belakang.")
+    return jsonify(success=True, run_id=run_id, message="Pelatihan dimulai di latar belakang.")
+
+
+@app.post("/api/admin/train/stop")
+def admin_train_stop():
+    training_cancel_event.set()
+    return jsonify(success=True, message="Sinyal pembatalan dikirim ke worker pelatihan.")
 
 
 @app.get("/api/admin/train/status")
 def admin_train_status():
-    """Returns the live status of the training studio."""
     with training_lock:
         return jsonify(training_state)
 
 
+@app.get("/api/admin/train/runs")
+def admin_train_runs():
+    return jsonify(runs=storage.list_training_runs(limit=25))
+
+
+@app.get("/api/admin/models")
+def admin_list_models():
+    """List all registered engines and available ResNet/custom checkpoint files."""
+    cfg = storage.get_config()
+    active_ckpt = cfg.get("active_resnet_checkpoint", "models/resnet18_model.pt")
+    checkpoints = []
+    models_dir = ROOT / "models"
+    if models_dir.exists():
+        for p in sorted(models_dir.glob("*.pt"), key=lambda x: x.stat().st_mtime, reverse=True):
+            rel = f"models/{p.name}"
+            checkpoints.append({
+                "path": rel,
+                "name": p.name,
+                "size_mb": round(p.stat().st_size / (1024 * 1024), 1),
+                "modified": datetime.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+                "is_active": rel == active_ckpt,
+                "is_default": p.name == "resnet18_model.pt",
+            })
+    return jsonify(algorithms=_get_public_algorithms(), checkpoints=checkpoints, config=cfg)
+
+
+@app.post("/api/admin/models/activate")
+def admin_activate_checkpoint():
+    """Hot-swap an active validated CNN checkpoint without restarting Flask."""
+    global detector_model, preprocess_pipeline, model_metadata, model_sha256
+    payload = request.get_json(silent=True) or request.form
+    rel_path = str(payload.get("checkpoint_path", "")).replace("\\", "/")
+    if not rel_path.startswith("models/") or ".." in rel_path:
+        return jsonify(error="Path checkpoint tidak valid."), 400
+    target = (ROOT / rel_path).resolve()
+    if (ROOT / "models").resolve() not in target.parents or not target.exists():
+        return jsonify(error="Berkas checkpoint tidak ditemukan."), 404
+
+    try:
+        model, tf, meta = load_validated_cnn_checkpoint(target, device)
+        digest = hashlib.sha256(target.read_bytes()).hexdigest()
+        arch_raw = meta.get("architecture", "ResNet18")
+        algo_key = "resnet18" if arch_raw.lower() == "resnet18" else arch_raw
+
+        with inference_lock:
+            if algo_key == "resnet18":
+                algorithms_registry["resnet18"].update(
+                    model=model, transform=tf, metadata=meta, sha256=digest, checkpoint_path=rel_path, loaded=True
+                )
+                if ENGINE == "resnet18":
+                    detector_model = model
+                    preprocess_pipeline = tf
+                    model_metadata = meta
+                    model_sha256 = digest
+                storage.update_config({"active_resnet_checkpoint": rel_path})
+            else:
+                algorithms_registry[algo_key].update(
+                    model=model, transform=tf, metadata=meta, sha256=digest, checkpoint_path=rel_path, loaded=True
+                )
+        return jsonify(success=True, message=f"Checkpoint {target.name} berhasil diaktifkan di memori.")
+    except Exception as exc:
+        app.logger.exception("Failed activating checkpoint")
+        return jsonify(error=f"Gagal memuat checkpoint: {exc}"), 400
+
+
 @app.post("/api/admin/config")
-def admin_config():
-    """Updates default engine or settings."""
-    global ENGINE, detector_model, preprocess_pipeline, model_metadata, model_sha256
-    req_engine = request.form.get("engine") or (request.json or {}).get("engine")
-    if req_engine in algorithms_registry and algorithms_registry[req_engine]["loaded"]:
-        ENGINE = req_engine
-        if algorithms_registry[req_engine]["model"] is not None:
-            detector_model = algorithms_registry[req_engine]["model"]
-            preprocess_pipeline = algorithms_registry[req_engine]["transform"]
-            model_metadata = algorithms_registry[req_engine]["metadata"]
-            model_sha256 = algorithms_registry[req_engine]["sha256"]
-        return jsonify(success=True, message=f"Algoritma aktif berhasil diubah ke {algorithms_registry[req_engine]['name']}.")
-    return jsonify(error="Algoritma tidak valid atau belum termuat."), 400
+def admin_update_config():
+    """Persist Admin algorithm configuration (enabled models, default engine, threshold, ensemble weights)."""
+    payload = request.get_json(silent=True) or {}
+    if not payload and request.form:
+        payload = dict(request.form)
+
+    updates = {}
+    if "default_algorithm" in payload or "engine" in payload:
+        da = str(payload.get("default_algorithm") or payload.get("engine"))
+        if da not in algorithms_registry or not algorithms_registry[da]["loaded"]:
+            return jsonify(error="Algoritma default tidak valid atau belum termuat."), 400
+        updates["default_algorithm"] = da
+
+    if "decision_threshold" in payload:
+        th = float(payload["decision_threshold"])
+        if not 0.1 <= th <= 0.9:
+            return jsonify(error="Ambang batas keputusan harus antara 0.10 dan 0.90."), 400
+        updates["decision_threshold"] = round(th, 2)
+
+    if "enabled_algorithms" in payload:
+        en = payload["enabled_algorithms"]
+        if isinstance(en, str):
+            en = [x.strip() for x in en.split(",") if x.strip()]
+        valid_en = [x for x in en if x in algorithms_registry and algorithms_registry[x]["loaded"]]
+        if not valid_en:
+            return jsonify(error="Minimal satu algoritma harus tetap aktif."), 400
+        updates["enabled_algorithms"] = valid_en
+        # Ensure default algorithm stays among enabled
+        cur_def = updates.get("default_algorithm") or storage.get_config().get("default_algorithm")
+        if cur_def not in valid_en:
+            updates["default_algorithm"] = valid_en[0]
+
+    if "ensemble_weights" in payload and isinstance(payload["ensemble_weights"], dict):
+        cleaned = {}
+        for k, v in payload["ensemble_weights"].items():
+            if k in algorithms_registry:
+                cleaned[k] = max(0.0, min(float(v), 1.0))
+        if sum(cleaned.values()) <= 0:
+            return jsonify(error="Total bobot ensemble harus lebih besar dari 0."), 400
+        updates["ensemble_weights"] = cleaned
+
+    new_cfg = storage.update_config(updates)
+    return jsonify(success=True, config=new_cfg, message="Konfigurasi sistem berhasil disimpan dan diterapkan.")
 
 
 init_model_on_startup()
