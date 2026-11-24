@@ -141,7 +141,7 @@ model_init_error = None
 model_sha256 = None
 inference_lock = Lock()
 device = None
-device_name = "CPU"
+device_name = "CPU Compute Engine"
 server_start_time = time.time()
 
 storage = ForensicsStorage(ROOT / "data" / "deepguard.db")
@@ -522,7 +522,7 @@ def init_model_on_startup():
 
         torch.set_num_threads(4)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+        device_name = "GPU Accelerated (CUDA)" if torch.cuda.is_available() else "CPU Compute Engine"
 
         if ENGINE == "community_forensics":
             from community_detector import load_community
@@ -1609,7 +1609,7 @@ def _background_train_worker(run_id, arch_name, base_mode, epochs, batch_size, l
         val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, drop_last=False)
 
         train_dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        _log(f"Perangkat: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'} | Train={len(train_ds)} | Val={len(val_ds)}")
+        _log(f"Perangkat: {'GPU Accelerated (CUDA)' if torch.cuda.is_available() else 'CPU Compute Engine'} | Train={len(train_ds)} | Val={len(val_ds)}")
         _log("Pemetaan kelas terverifikasi: REAL=0, FAKE=1 (explicit contract)")
 
         # Initialize architecture & weights
