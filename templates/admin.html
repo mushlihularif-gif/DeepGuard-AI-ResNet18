@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konsol Admin Forensik & Monitoring — DeepGuard AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="/static/img/logo_deteksi_citra_ai.png">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="brand">
+                <img src="/static/img/logo_deteksi_citra_ai.png" alt="DeepGuard AI Logo" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title">DeepGuard AI</span>
+                    <span class="brand-pill">ADMIN SOC</span>
+                </div>
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html"><i class="fa-solid fa-house"></i> Beranda</a></li>
+                    <li><a href="deteksi.html"><i class="fa-solid fa-crosshairs"></i> Deteksi Citra</a></li>
+                    <li><a href="admin.html" class="active"><i class="fa-solid fa-sliders"></i> Konsol Admin</a></li>
+                    <li><a href="deteksi.html" class="btn btn-sm nav-cta"><i class="fa-solid fa-bolt"></i> Ruang Scanner</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Konten Utama Admin -->
+    <main class="main-content">
+
+        <!-- Admin SOC Header Strip -->
+        <div class="page-header" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <div class="status-pill" style="margin-bottom: 8px;">
+                        <span class="pulse-dot"></span>
+                        <span id="socStatusText">SECURITY OPERATIONS CENTER • SYSTEM ONLINE</span>
+                    </div>
+                    <h1 class="page-title">
+                        <i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Pusat Pemantauan & Pelatihan Model
+                    </h1>
+                    <p class="page-desc">
+                        Dashboard manajemen terpadu untuk monitoring telemetri inferensi, manajemen dataset, studio fine-tuning model ResNet-18, dan konfigurasi multi-algoritma.
+                    </p>
+                </div>
+                <div class="admin-hardware-telemetry">
+                    <div><i class="fa-solid fa-microchip" style="color: var(--primary);"></i> Akselerasi: <strong id="adminDeviceText">{{ model_info.device }}</strong></div>
+                    <div><i class="fa-solid fa-clock" style="color: var(--accent-violet);"></i> Uptime: <strong id="adminUptimeText">0m</strong></div>
+                    <div><i class="fa-solid fa-layer-group" style="color: var(--real-color);"></i> Algoritma Aktif: <strong id="adminEngineText">{{ model_info.engine }}</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation Bar -->
+        <div class="admin-tabs-bar">
+            <button type="button" class="admin-tab-btn active" data-tab="tab-monitoring">
+                <i class="fa-solid fa-chart-line"></i> Pemantauan & Log Telemetri
+            </button>
+            <button type="button" class="admin-tab-btn" data-tab="tab-dataset">
+                <i class="fa-solid fa-folder-tree"></i> Manajemen Dataset
+            </button>
+            <button type="button" class="admin-tab-btn" data-tab="tab-training">
+                <i class="fa-solid fa-brain"></i> Studio Pelatihan Model
+            </button>
+            <button type="button" class="admin-tab-btn" data-tab="tab-config">
+                <i class="fa-solid fa-gear"></i> Konfigurasi Algoritma
+            </button>
+        </div>
+
+        <!-- ===================================================================
+             TAB 1: PEMANTAUAN & LOG TELEMETRI REAL-TIME
+             =================================================================== -->
+        <div id="tab-monitoring" class="admin-tab-content active">
+            <!-- 4 Metric Cards -->
+            <div class="grid-4" style="margin-bottom: 24px;">
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                    <div class="metric-value" id="statTotalScans">0</div>
+                    <div class="metric-label">Total Pemindaian Citra</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon" style="color: var(--real-color);"><i class="fa-solid fa-camera"></i></div>
+                    <div class="metric-value" id="statRealScans" style="color: var(--real-color);">0</div>
+                    <div class="metric-label">Terdeteksi Foto Asli (Real)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon" style="color: var(--fake-color);"><i class="fa-solid fa-robot"></i></div>
+                    <div class="metric-value" id="statFakeScans" style="color: var(--fake-color);">0</div>
+                    <div class="metric-label">Terdeteksi AI Sintetis</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <div class="metric-value" id="statAvgLatency">0 ms</div>
+                    <div class="metric-label">Rata-Rata Latensi Inferensi</div>
+                </div>
+            </div>
+
+            <!-- Tabel Log Pemindaian Terkini -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header-clean">
+                    <h2 class="card-title"><i class="fa-solid fa-list-check"></i> Aktivitas Pemindaian Citra Terkini</h2>
+                    <span class="badge-accent-subtle">LOG LIVE STREAM</span>
+                </div>
+                <div class="matrix-table-wrap" style="max-height: 480px; overflow-y: auto;">
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Nama Berkas</th>
+                                <th>Dimensi</th>
+                                <th>Algoritma</th>
+                                <th>Keputusan</th>
+                                <th>Keyakinan</th>
+                                <th>Latensi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminRecentScansBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 36px 0;">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Memuat log aktivitas...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             TAB 2: MANAJEMEN DATASET (LIHAT & TAMBAH DATASET)
+             =================================================================== -->
+        <div id="tab-dataset" class="admin-tab-content">
+            <!-- Ringkasan Statistik Dataset -->
+            <div class="grid-4" style="margin-bottom: 24px;">
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fa-solid fa-images"></i></div>
+                    <div class="metric-value" id="datasetTotalImages">0</div>
+                    <div class="metric-label">Total Sampel Dataset</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon" style="color: var(--real-color);"><i class="fa-solid fa-camera"></i></div>
+                    <div class="metric-value" id="datasetTotalReal" style="color: var(--real-color);">0</div>
+                    <div class="metric-label">Sampel Foto Asli (Train+Val)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon" style="color: var(--fake-color);"><i class="fa-solid fa-robot"></i></div>
+                    <div class="metric-value" id="datasetTotalFake" style="color: var(--fake-color);">0</div>
+                    <div class="metric-label">Sampel AI Sintetis (Train+Val)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+                    <div class="metric-value" id="datasetRatioText">50% : 50%</div>
+                    <div class="metric-label">Rasio Keseimbangan Kelas</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Form Tambah Sampel ke Dataset -->
+                <div class="card">
+                    <div class="card-header-clean">
+                        <h2 class="card-title"><i class="fa-solid fa-cloud-arrow-up"></i> Tambah Citra ke Dataset Latihan</h2>
+                        <span class="badge-accent-subtle">DATASET EXPANDER</span>
+                    </div>
+
+                    <div id="datasetUploadAlert" class="alert-box alert-error hidden"></div>
+                    <div id="datasetUploadSuccess" class="alert-box alert-success hidden"></div>
+
+                    <form id="datasetUploadForm" onsubmit="return false;" style="margin-top: 12px;">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label class="form-label">Kategori / Kelas Citra:</label>
+                            <div class="dataset-class-picker">
+                                <label class="class-radio-label">
+                                    <input type="radio" name="datasetCategory" value="real" checked>
+                                    <span class="class-radio-custom radio-real"><i class="fa-solid fa-camera"></i> Foto Kamera Asli (Real)</span>
+                                </label>
+                                <label class="class-radio-label">
+                                    <input type="radio" name="datasetCategory" value="fake">
+                                    <span class="class-radio-custom radio-fake"><i class="fa-solid fa-robot"></i> Citra Generative AI (Fake)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label class="form-label">Pilih Berkas Gambar (JPG / PNG):</label>
+                            <input type="file" id="datasetFileInput" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="form-control-file">
+                        </div>
+
+                        <button type="button" id="btnUploadDataset" class="btn btn-primary" style="width: 100%;">
+                            <i class="fa-solid fa-plus"></i> Simpan Sampel ke Direktori Dataset
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Explorer Sampel Dataset Terkini -->
+                <div class="card">
+                    <div class="card-header-clean">
+                        <h2 class="card-title"><i class="fa-solid fa-eye"></i> Sampel Citra pada Direktori Latihan</h2>
+                        <span class="badge-accent-subtle">EXPLORER</span>
+                    </div>
+
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Pratinjau berkas citra yang aktif digunakan oleh data loader ResNet-18:
+                    </div>
+
+                    <div class="dataset-samples-preview-grid" id="datasetPreviewGrid">
+                        <!-- Loaded dynamically -->
+                        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 24px 0;">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Memuat daftar berkas dataset...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             TAB 3: STUDIO PELATIHAN MODEL (FINE-TUNING RESNET-18)
+             =================================================================== -->
+        <div id="tab-training" class="admin-tab-content">
+            <div class="grid-2">
+                <!-- Form Konfigurasi Training -->
+                <div class="card">
+                    <div class="card-header-clean">
+                        <h2 class="card-title"><i class="fa-solid fa-sliders"></i> Konfigurasi Hyperparameter Pelatihan</h2>
+                        <span class="badge-accent-subtle">RESNET-18 FINE-TUNING</span>
+                    </div>
+
+                    <div id="trainErrorAlert" class="alert-box alert-error hidden"></div>
+
+                    <form id="trainForm" onsubmit="return false;" style="margin-top: 14px;">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label class="form-label">Arsitektur Target:</label>
+                            <input type="text" class="form-input" value="ResNet-18 (Deep Residual Convolutional)" readonly style="opacity: 0.8; cursor: not-allowed;">
+                        </div>
+
+                        <div class="form-row-2" style="display: flex; gap: 12px; margin-bottom: 14px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Jumlah Epoch:</label>
+                                <input type="number" id="trainEpochs" class="form-input" value="5" min="1" max="50">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Batch Size:</label>
+                                <select id="trainBatchSize" class="form-input">
+                                    <option value="8">8 Sampel</option>
+                                    <option value="16" selected>16 Sampel</option>
+                                    <option value="32">32 Sampel</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="form-label">Learning Rate (AdamW Optimizer):</label>
+                            <input type="number" id="trainLr" class="form-input" value="0.0001" step="0.00005" min="0.00001">
+                        </div>
+
+                        <div class="action-buttons">
+                            <button type="button" id="btnStartTraining" class="btn btn-primary" style="flex: 1;">
+                                <i class="fa-solid fa-play"></i> Mulai Pelatihan Model
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Live Training Telemetry & Logs -->
+                <div class="card">
+                    <div class="card-header-clean">
+                        <h2 class="card-title"><i class="fa-solid fa-terminal"></i> Status & Telemetri Pelatihan Live</h2>
+                        <span id="trainStatusBadge" class="indicator-badge badge-pass" style="background: rgba(0, 212, 255, 0.15); color: var(--primary);">IDLE</span>
+                    </div>
+
+                    <!-- Progress Bar Pelatihan -->
+                    <div style="margin: 14px 0 16px 0;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 700; font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px;">
+                            <span id="trainMessageText">Siap untuk pelatihan.</span>
+                            <span id="trainProgressPctText" style="color: var(--primary);">0%</span>
+                        </div>
+                        <div class="progress-bar-track" style="height: 10px;">
+                            <div id="trainProgressBarFill" class="progress-bar-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Metric Strip Live Training -->
+                    <div class="training-metrics-strip">
+                        <div class="train-mini-metric">
+                            <span>Epoch Berjalan</span>
+                            <strong id="trainEpochCount">0 / 0</strong>
+                        </div>
+                        <div class="train-mini-metric">
+                            <span>Current Loss</span>
+                            <strong id="trainLossValue" style="color: var(--warn-color);">0.0000</strong>
+                        </div>
+                        <div class="train-mini-metric">
+                            <span>Akurasi Latihan</span>
+                            <strong id="trainAccuracyValue" style="color: var(--real-color);">0.0%</strong>
+                        </div>
+                    </div>
+
+                    <!-- Terminal Log Window -->
+                    <div class="admin-terminal-log" id="trainTerminalLog">
+                        <div style="color: var(--text-muted);">[SYSTEM] Terminal pelatihan siap. Menunggu perintah mulai...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================================================================
+             TAB 4: PENGATURAN ALGORITMA & MODEL WEIGHTS
+             =================================================================== -->
+        <div id="tab-config" class="admin-tab-content">
+            <div class="grid-2">
+                <!-- Pengaturan Default Engine -->
+                <div class="card">
+                    <div class="card-header-clean">
+                        <h2 class="card-title"><i class="fa-solid fa-microchip"></i> Pengaturan Algoritma Utama</h2>
+                        <span class="badge-accent-subtle">SYSTEM CONFIG</span>
+                    </div>
+
+                    <div id="configSuccessAlert" class="alert-box alert-success hidden"></div>
+
+                    <form id="configForm" onsubmit="return false;" style="margin-top: 14px;">
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label class="form-label">Pilih Algoritma Default Server:</label>
+                            <select id="configDefaultEngine" class="form-input">
+                                <option value="resnet18" selected>ResNet-18 (Deep Residual Network) — Proyek Utama</option>
+                                <option value="community_forensics">Vision Transformer (ViT-S/16) — Attention Based</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="form-label">Ambang Batas Keputusan Biner (Threshold):</label>
+                            <input type="text" class="form-input" value="0.50 (Probabilitas Real vs Fake Seimbang)" readonly style="opacity: 0.8; cursor: not-allowed;">
+                        </div>
+
+                        <button type="button" id="btnSaveConfig" class="btn btn-primary" style="width: 100%;">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan Konfigurasi Algoritma
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Model Information & Registry -->
+                <div class="card">
+                    <div class="card-header-clean">
+                        <h2 class="card-title"><i class="fa-solid fa-database"></i> Registry Checkpoint Model</h2>
+                        <span class="badge-accent-subtle">WEIGHTS INTEGRITY</span>
+                    </div>
+
+                    <div class="models-registry-list" id="modelsRegistryList">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <span><img src="/static/img/logo_deteksi_citra_ai.png" alt="Logo" class="footer-logo-img"> <strong>DeepGuard AI</strong> &bull; SOC Management Console</span>
+            <span>Kontrol Penuh Admin & Pelatihan &bull; 2026</span>
+        </div>
+    </footer>
+
+    <!-- Logika Interaktif Admin Console -->
+    <script>
+        // Tab Switching Logic
+        document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                const targetId = btn.getAttribute('data-tab');
+                const targetContent = document.getElementById(targetId);
+                if (targetContent) targetContent.classList.add('active');
+            });
+        });
+
+        // Polling Admin Telemetry & Statistics
+        function refreshAdminStats() {
+            fetch('/api/admin/stats')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('statTotalScans').textContent = data.total_scans;
+                    document.getElementById('statRealScans').textContent = data.real_scans;
+                    document.getElementById('statFakeScans').textContent = data.fake_scans;
+                    document.getElementById('statAvgLatency').textContent = data.avg_latency_ms + ' ms';
+                    document.getElementById('adminDeviceText').textContent = data.device;
+                    document.getElementById('adminEngineText').textContent = data.active_engine.toUpperCase();
+
+                    const uptimeMins = Math.floor(data.uptime_seconds / 60);
+                    document.getElementById('adminUptimeText').textContent = uptimeMins + 'm ' + (data.uptime_seconds % 60) + 's';
+
+                    if (data.dataset) {
+                        const ds = data.dataset;
+                        document.getElementById('datasetTotalImages').textContent = ds.total_images;
+                        document.getElementById('datasetTotalReal').textContent = ds.total_real;
+                        document.getElementById('datasetTotalFake').textContent = ds.total_fake;
+                        if (ds.total_images > 0) {
+                            const realPct = Math.round((ds.total_real / ds.total_images) * 100);
+                            const fakePct = 100 - realPct;
+                            document.getElementById('datasetRatioText').textContent = realPct + '% : ' + fakePct + '%';
+                        }
+                    }
+
+                    renderRecentScans(data.recent_scans || []);
+                    renderModelsRegistry(data.algorithms || []);
+                })
+                .catch(err => console.error('Error fetching admin stats:', err));
+        }
+
+        function renderRecentScans(scans) {
+            const tbody = document.getElementById('adminRecentScansBody');
+            if (!tbody) return;
+            if (scans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px 0;">Belum ada aktivitas pemindaian citra yang tercatat.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            scans.forEach(s => {
+                const tr = document.createElement('tr');
+                const isReal = s.verdict === 'REAL';
+                tr.innerHTML = `
+                    <td style="font-family: var(--font-mono); font-size: 11px;">${s.timestamp}</td>
+                    <td><strong>${s.filename}</strong></td>
+                    <td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">${s.dimensions}</td>
+                    <td><span class="matrix-active-tag">${(s.algorithm || 'ResNet-18').toUpperCase()}</span></td>
+                    <td><span class="matrix-badge ${isReal ? 'real' : 'fake'}">${s.verdict}</span></td>
+                    <td style="font-family: var(--font-mono); font-weight: 700; color: ${isReal ? 'var(--real-color)' : 'var(--fake-color)'};">${s.confidence}%</td>
+                    <td style="font-family: var(--font-mono); font-size: 11px;">${s.latency_ms} ms</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderModelsRegistry(algos) {
+            const list = document.getElementById('modelsRegistryList');
+            if (!list) return;
+            list.innerHTML = '';
+            algos.forEach(a => {
+                const div = document.createElement('div');
+                div.className = 'model-registry-item';
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <strong>${a.name}</strong>
+                        <span class="matrix-badge ${a.loaded ? 'real' : 'fake'}">${a.loaded ? 'TERSEDIA' : 'TIDAK AKTIF'}</span>
+                    </div>
+                    <div style="font-size: 11.5px; color: var(--text-secondary);">${a.badge} &bull; ${a.is_active ? '<span style="color: var(--primary);">SEDANG AKTIF DIGUNAKAN</span>' : 'Siap Dipanggil'}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Dataset Sample Explorer Loader
+        function loadDatasetSamples() {
+            fetch('/api/admin/dataset/list')
+                .then(r => r.json())
+                .then(data => {
+                    const grid = document.getElementById('datasetPreviewGrid');
+                    if (!grid) return;
+                    grid.innerHTML = '';
+
+                    const allSamples = [];
+                    (data.real || []).forEach(f => allSamples.push({ ...f, type: 'real' }));
+                    (data.fake || []).forEach(f => allSamples.push({ ...f, type: 'fake' }));
+
+                    if (allSamples.length === 0) {
+                        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 24px 0;">Tidak ada berkas pada dataset.</div>';
+                        return;
+                    }
+
+                    allSamples.slice(0, 16).forEach(s => {
+                        const card = document.createElement('div');
+                        card.className = 'dataset-sample-card ' + (s.type === 'real' ? 'card-real-border' : 'card-fake-border');
+                        card.innerHTML = `
+                            <div class="sample-type-badge ${s.type === 'real' ? 'badge-real' : 'badge-fake'}">${s.type.toUpperCase()}</div>
+                            <div class="sample-filename">${s.name}</div>
+                            <div class="sample-filesize">${(s.size / 1024).toFixed(1)} KB</div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(err => console.error('Error loading dataset samples:', err));
+        }
+
+        // Upload Dataset Sample Handler
+        document.getElementById('btnUploadDataset').addEventListener('click', () => {
+            const fileInput = document.getElementById('datasetFileInput');
+            const alertErr = document.getElementById('datasetUploadAlert');
+            const alertSucc = document.getElementById('datasetUploadSuccess');
+            const cat = document.querySelector('input[name="datasetCategory"]:checked').value;
+
+            alertErr.classList.add('hidden');
+            alertSucc.classList.add('hidden');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alertErr.textContent = 'Pilih berkas gambar terlebih dahulu.';
+                alertErr.classList.remove('hidden');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('category', cat);
+
+            const btn = document.getElementById('btnUploadDataset');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...';
+
+            fetch('/api/admin/dataset/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-plus"></i> Simpan Sampel ke Direktori Dataset';
+                if (data.error) {
+                    alertErr.textContent = data.error;
+                    alertErr.classList.remove('hidden');
+                } else {
+                    alertSucc.textContent = data.message;
+                    alertSucc.classList.remove('hidden');
+                    fileInput.value = '';
+                    refreshAdminStats();
+                    loadDatasetSamples();
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-plus"></i> Simpan Sampel ke Direktori Dataset';
+                alertErr.textContent = 'Gagal mengunggah: ' + err.message;
+                alertErr.classList.remove('hidden');
+            });
+        });
+
+        // Training Studio Handler
+        let trainPollInterval = null;
+
+        document.getElementById('btnStartTraining').addEventListener('click', () => {
+            const epochs = document.getElementById('trainEpochs').value;
+            const batchSize = document.getElementById('trainBatchSize').value;
+            const lr = document.getElementById('trainLr').value;
+            const alertErr = document.getElementById('trainErrorAlert');
+
+            alertErr.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('epochs', epochs);
+            formData.append('batch_size', batchSize);
+            formData.append('lr', lr);
+
+            const btn = document.getElementById('btnStartTraining');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memulai...';
+
+            fetch('/api/admin/train/start', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Pelatihan Model';
+                    alertErr.textContent = data.error;
+                    alertErr.classList.remove('hidden');
+                } else {
+                    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Pelatihan Sedang Berjalan...';
+                    startTrainingPolling();
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Pelatihan Model';
+                alertErr.textContent = 'Koneksi gagal: ' + err.message;
+                alertErr.classList.remove('hidden');
+            });
+        });
+
+        function startTrainingPolling() {
+            if (trainPollInterval) clearInterval(trainPollInterval);
+
+            trainPollInterval = setInterval(() => {
+                fetch('/api/admin/train/status')
+                    .then(r => r.json())
+                    .then(state => {
+                        document.getElementById('trainStatusBadge').textContent = state.status;
+                        document.getElementById('trainMessageText').textContent = state.message;
+                        document.getElementById('trainProgressPctText').textContent = state.progress + '%';
+                        document.getElementById('trainProgressBarFill').style.width = state.progress + '%';
+                        document.getElementById('trainEpochCount').textContent = state.epoch + ' / ' + state.total_epochs;
+                        document.getElementById('trainLossValue').textContent = state.loss.toFixed(4);
+                        document.getElementById('trainAccuracyValue').textContent = state.accuracy.toFixed(1) + '%';
+
+                        const terminal = document.getElementById('trainTerminalLog');
+                        if (state.logs && state.logs.length > 0) {
+                            terminal.innerHTML = state.logs.map(l => `<div>${l}</div>`).join('');
+                            terminal.scrollTop = terminal.scrollHeight;
+                        }
+
+                        if (state.status === 'COMPLETED' || state.status === 'ERROR') {
+                            clearInterval(trainPollInterval);
+                            const btn = document.getElementById('btnStartTraining');
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Pelatihan Model';
+                            refreshAdminStats();
+                        }
+                    })
+                    .catch(err => console.error('Error polling train status:', err));
+            }, 1000);
+        }
+
+        // Save Algorithm Config Handler
+        document.getElementById('btnSaveConfig').addEventListener('click', () => {
+            const engine = document.getElementById('configDefaultEngine').value;
+            const alertSucc = document.getElementById('configSuccessAlert');
+            alertSucc.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('engine', engine);
+
+            fetch('/api/admin/config', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alertSucc.textContent = data.message;
+                    alertSucc.classList.remove('hidden');
+                    refreshAdminStats();
+                } else {
+                    alert(data.error || 'Gagal mengubah konfigurasi');
+                }
+            })
+            .catch(err => alert('Koneksi gagal: ' + err.message));
+        });
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshAdminStats();
+            loadDatasetSamples();
+            setInterval(refreshAdminStats, 4000);
+        });
+    </script>
+</body>
+</html>
