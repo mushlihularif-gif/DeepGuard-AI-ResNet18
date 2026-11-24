@@ -565,7 +565,7 @@
             setScanningUI(true);
 
             const stages = [
-                '[1/4] INFERENSI MODEL NEURAL...',
+                '[1/4] INFERENSI SMAUG-AI & MULTI-MODEL VISION...',
                 '[2/4] ANALISIS SPEKTRUM 2D-FFT & ELA...',
                 '[3/4] EKSTRAKSI PETA AKTIVASI GRAD-CAM...',
                 '[4/4] VERIFIKASI C2PA & METADATA EXIF...'
@@ -737,7 +737,7 @@
             const tbody = document.getElementById('comparisonTableBody');
             tbody.innerHTML = '';
             const compMap = data.comparison || {};
-            const order = ['ensemble', 'vit', 'resnet18', 'ela', ...Object.keys(compMap).filter(k => !['ensemble', 'vit', 'resnet18', 'ela'].includes(k))];
+            const order = ['ensemble', 'smaug', 'detectra', 'vit', 'resnet18', 'ela', ...Object.keys(compMap).filter(k => !['ensemble', 'smaug', 'detectra', 'vit', 'resnet18', 'ela'].includes(k))];
             const rendered = new Set();
 
             order.forEach(algoId => {

@@ -37,4 +37,7 @@ dataset/*
 !dataset/**/.gitkeep
 models/candidate*.pt
 models/community_forensics.safetensors
+models/smaug/
+models/detectra_openfake.onnx
+models/trained_*.pt
 models/*.partial

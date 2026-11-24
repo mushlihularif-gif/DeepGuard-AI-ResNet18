@@ -118,6 +118,72 @@
             </div>
         </section>
 
+        <!-- Verified SOTA Multi-Engine Cross-Domain Benchmark -->
+        {% if benchmarks.sota %}
+        <section class="panel" style="margin-bottom: 20px;">
+            <div class="panel-head">
+                <h2 class="panel-title">Benchmark Lintas Generator Modern (Terukur pada Perangkat Ini)</h2>
+                <span class="chip chip-real">REAL BENCHMARK · N={{ benchmarks.sota.n }}</span>
+            </div>
+            <div class="table-wrap" style="border: none; border-radius: 0;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Mesin Deteksi</th>
+                            <th>Akurasi</th>
+                            <th>Balanced Acc</th>
+                            <th>AI Recall</th>
+                            <th>False Positive (Foto Asli)</th>
+                            <th>Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="row-active">
+                            <td><strong>Ensemble SOTA (Bayesian Noisy-OR)</strong></td>
+                            <td class="mono" style="color: var(--real); font-weight: 700;">{{ benchmarks.sota.models.ensemble_noisy_or.accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.ensemble_noisy_or.balanced_accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.ensemble_noisy_or.ai_recall }}%</td>
+                            <td class="mono" style="color: var(--real);">{{ benchmarks.sota.models.ensemble_noisy_or.real_fpr }}%</td>
+                            <td style="font-size: 12px; color: var(--text-secondary);">JPEG-75: {{ benchmarks.sota.models.ensemble_noisy_or.jpeg75_accuracy }}% (FPR {{ benchmarks.sota.models.ensemble_noisy_or.jpeg75_real_fpr }}%)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Smaug-AI (EmbeddingGemma-2 Vision)</strong></td>
+                            <td class="mono">{{ benchmarks.sota.models.smaug.accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.smaug.balanced_accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.smaug.ai_recall }}%</td>
+                            <td class="mono" style="color: var(--real);">{{ benchmarks.sota.models.smaug.real_fpr }}%</td>
+                            <td style="font-size: 12px; color: var(--text-secondary);">3×528px native crops · {{ benchmarks.sota.models.smaug.avg_ms }} ms/citra</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ViT-S/16 (Community Forensics)</strong></td>
+                            <td class="mono">{{ benchmarks.sota.models.vit.accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.vit.balanced_accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.vit.ai_recall }}%</td>
+                            <td class="mono" style="color: var(--real);">{{ benchmarks.sota.models.vit.real_fpr }}%</td>
+                            <td style="font-size: 12px; color: var(--text-secondary);">384px patch-16 · {{ benchmarks.sota.models.vit.avg_ms }} ms/citra</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Detectra-OpenFake (Multi-Scale ONNX)</strong></td>
+                            <td class="mono">{{ benchmarks.sota.models.detectra.accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.detectra.balanced_accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.detectra.ai_recall }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.detectra.real_fpr }}%</td>
+                            <td style="font-size: 12px; color: var(--text-secondary);">440/576/768px multi-scale · {{ benchmarks.sota.models.detectra.avg_ms }} ms/citra</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ResNet-18 (CNN Residual + Grad-CAM)</strong></td>
+                            <td class="mono">{{ benchmarks.sota.models.resnet18.accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.resnet18.balanced_accuracy }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.resnet18.ai_recall }}%</td>
+                            <td class="mono">{{ benchmarks.sota.models.resnet18.real_fpr }}%</td>
+                            <td style="font-size: 12px; color: var(--text-secondary);">Holdout 1.600 citra: {{ benchmarks.resnet18_holdout.accuracy if benchmarks.resnet18_holdout else '—' }}% · {{ benchmarks.sota.models.resnet18.avg_ms }} ms/citra</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+
         <!-- Security Controls -->
         <section class="panel">
             <div class="panel-head">

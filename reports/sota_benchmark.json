@@ -1,0 +1,49 @@
+{
+  "dataset": "CommunityForensics-Eval Cross-Domain (FLUX-dev, Imagen3, Midjourney v5/v6, Ideogram v2, Firefly 2, DALL-E 2, Hourglass + Real)",
+  "n": 84,
+  "models": {
+    "ensemble_noisy_or": {
+      "accuracy": 98.8,
+      "balanced_accuracy": 99.0,
+      "real_fpr": 0.0,
+      "ai_recall": 98.1,
+      "confusion": [[32, 0], [1, 51]],
+      "jpeg75_accuracy": 94.0,
+      "jpeg75_balanced_accuracy": 95.2,
+      "jpeg75_real_fpr": 0.0,
+      "jpeg75_ai_recall": 90.4
+    },
+    "smaug": {
+      "accuracy": 92.9,
+      "balanced_accuracy": 94.2,
+      "real_fpr": 0.0,
+      "ai_recall": 88.5,
+      "confusion": [[32, 0], [6, 46]],
+      "avg_ms": 398.6
+    },
+    "vit": {
+      "accuracy": 91.7,
+      "balanced_accuracy": 93.3,
+      "real_fpr": 0.0,
+      "ai_recall": 86.5,
+      "confusion": [[32, 0], [7, 45]],
+      "avg_ms": 24.8
+    },
+    "detectra": {
+      "accuracy": 88.1,
+      "balanced_accuracy": 89.8,
+      "real_fpr": 3.1,
+      "ai_recall": 82.7,
+      "confusion": [[31, 1], [9, 43]],
+      "avg_ms": 254.2
+    },
+    "resnet18": {
+      "accuracy": 57.1,
+      "balanced_accuracy": 58.8,
+      "real_fpr": 34.4,
+      "ai_recall": 51.9,
+      "confusion": [[21, 11], [25, 27]],
+      "avg_ms": 8.7
+    }
+  }
+}

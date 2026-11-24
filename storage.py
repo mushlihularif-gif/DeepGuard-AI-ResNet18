@@ -10,8 +10,9 @@ from threading import Lock
 DEFAULT_CONFIG = {
     "default_algorithm": "ensemble",
     "decision_threshold": 0.50,
-    "enabled_algorithms": ["ensemble", "resnet18", "vit", "ela"],
-    "ensemble_weights": {"vit": 0.55, "resnet18": 0.30, "ela": 0.15},
+    "enabled_algorithms": ["ensemble", "smaug", "detectra", "vit", "resnet18", "ela"],
+    "ensemble_mode": "noisy_or",
+    "ensemble_weights": {"smaug": 0.96, "vit": 0.92, "detectra": 0.65, "resnet18": 0.0, "ela": 0.0},
     "active_resnet_checkpoint": "models/resnet18_model.pt",
 }
 

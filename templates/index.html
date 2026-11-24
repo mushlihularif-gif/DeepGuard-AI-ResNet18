@@ -50,7 +50,7 @@
                 </h1>
 
                 <p class="hero-lead">
-                    Analisis keaslian citra secara terukur dengan arsitektur multi-algoritma (ResNet-18, Vision Transformer ViT-S/16, Error Level Analysis, dan Spektrum 2D-FFT), dilengkapi peta aktivasi Grad-CAM serta verifikasi kredensial kriptografis C2PA.
+                    Analisis keaslian citra secara terukur dengan fusi Bayesian Noisy-OR multi-algoritma: <strong>Smaug-AI (Gemma-2 Vision)</strong>, <strong>Detectra-OpenFake</strong>, <strong>ViT-S/16</strong>, <strong>ResNet-18</strong>, dan <strong>ELA + 2D-FFT</strong> — menangkap generator modern (ChatGPT/GPT-Image, Gemini, FLUX, Midjourney, DALL-E) beserta Grad-CAM dan verifikasi C2PA.
                 </p>
 
                 <div class="hero-actions">
@@ -103,20 +103,20 @@
         <section class="grid-4" style="margin-bottom: 22px;">
             <div class="kpi-card">
                 <div class="kpi-label">
-                    <span>Akurasi Cross-Domain (ViT-S/16)</span>
-                    <span class="chip" style="padding: 1px 5px; font-size: 10px;">EVAL</span>
+                    <span>Akurasi Ensemble SOTA</span>
+                    <span class="chip chip-real" style="padding: 1px 5px; font-size: 10px;">CROSS-DOMAIN</span>
                 </div>
-                <div class="kpi-value">{{ '%.1f%%'|format(benchmarks.cross_domain.vit.accuracy) if benchmarks.cross_domain and benchmarks.cross_domain.vit else '—' }}</div>
-                <div class="kpi-foot">Balanced Acc {{ '%.1f%%'|format(benchmarks.cross_domain.vit.balanced_accuracy) if benchmarks.cross_domain and benchmarks.cross_domain.vit else '—' }} &bull; Real FPR {{ '%.1f%%'|format(benchmarks.cross_domain.vit.real_fpr) if benchmarks.cross_domain and benchmarks.cross_domain.vit else '—' }}</div>
+                <div class="kpi-value" style="color: var(--real);">{{ '%.1f%%'|format(benchmarks.sota.models.ensemble_noisy_or.accuracy) if benchmarks.sota else '—' }}</div>
+                <div class="kpi-foot">Real FPR {{ '%.1f%%'|format(benchmarks.sota.models.ensemble_noisy_or.real_fpr) if benchmarks.sota else '—' }} &bull; JPEG-75: {{ '%.1f%%'|format(benchmarks.sota.models.ensemble_noisy_or.jpeg75_accuracy) if benchmarks.sota else '—' }}</div>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-label">
                     <span>Akurasi Holdout (ResNet-18)</span>
-                    <span class="chip" style="padding: 1px 5px; font-size: 10px;">TEST</span>
+                    <span class="chip" style="padding: 1px 5px; font-size: 10px;">1.600 UJI</span>
                 </div>
                 <div class="kpi-value">{{ '%.1f%%'|format(benchmarks.resnet18_holdout.accuracy) if benchmarks.resnet18_holdout else '—' }}</div>
-                <div class="kpi-foot">Uji {{ benchmarks.resnet18_holdout.n if benchmarks.resnet18_holdout else '—' }} citra &bull; High-Conf {{ '%.1f%%'|format(benchmarks.resnet18_holdout.decided_accuracy) if benchmarks.resnet18_holdout else '—' }}</div>
+                <div class="kpi-foot">High-Conf {{ '%.1f%%'|format(benchmarks.resnet18_holdout.decided_accuracy) if benchmarks.resnet18_holdout else '—' }} &bull; Grad-CAM Aktif</div>
             </div>
 
             <div class="kpi-card">

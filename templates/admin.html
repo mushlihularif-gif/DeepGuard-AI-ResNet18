@@ -97,11 +97,13 @@
                             <option value="FAKE">SINTETIS (AI)</option>
                             <option value="AI_DISCLOSED">C2PA AI</option>
                         </select>
-                        <select id="logAlgoFilter" class="select" style="width: 165px; padding: 6px 10px;">
+                        <select id="logAlgoFilter" class="select" style="width: 170px; padding: 6px 10px;">
                             <option value="ALL">Semua Algoritma</option>
-                            <option value="ensemble">Ensemble</option>
-                            <option value="resnet18">ResNet-18</option>
+                            <option value="ensemble">Ensemble SOTA</option>
+                            <option value="smaug">Smaug-AI</option>
+                            <option value="detectra">Detectra-OpenFake</option>
                             <option value="vit">ViT-S/16</option>
+                            <option value="resnet18">ResNet-18</option>
                             <option value="ela">ELA + 2D-FFT</option>
                         </select>
                         <a href="/api/admin/logs/export" class="btn btn-secondary btn-sm">Ekspor CSV</a>
@@ -417,19 +419,37 @@
                         </div>
 
                         <div class="field">
-                            <label class="field-label">Bobot Fusi Ensemble (ViT / ResNet-18 / ELA+FFT)</label>
-                            <div class="grid-3" style="gap: 8px;">
+                            <label class="field-label">Metode Fusi Ensemble</label>
+                            <select id="cfgEnsembleMode" class="select">
+                                <option value="noisy_or">Bayesian Noisy-OR (Rekomendasi — Recall Maksimal, 0% FPR)</option>
+                                <option value="weighted_avg">Weighted Average (Rata-Rata Terbobot Klasik)</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">Bobot Reliabilitas Ensemble (0.00 – 1.00)</label>
+                            <div class="grid-3" style="gap: 8px; margin-bottom: 8px;">
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted);">Smaug-AI</span>
+                                    <input type="number" id="wSmaug" class="input mono" min="0" max="1" step="0.02" value="0.96">
+                                </div>
                                 <div>
                                     <span style="font-size: 11px; color: var(--text-muted);">ViT-S/16</span>
-                                    <input type="number" id="wVit" class="input mono" min="0" max="1" step="0.05" value="0.55">
+                                    <input type="number" id="wVit" class="input mono" min="0" max="1" step="0.02" value="0.92">
                                 </div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted);">Detectra</span>
+                                    <input type="number" id="wDetectra" class="input mono" min="0" max="1" step="0.02" value="0.65">
+                                </div>
+                            </div>
+                            <div class="grid-2" style="gap: 8px;">
                                 <div>
                                     <span style="font-size: 11px; color: var(--text-muted);">ResNet-18</span>
-                                    <input type="number" id="wResnet" class="input mono" min="0" max="1" step="0.05" value="0.30">
+                                    <input type="number" id="wResnet" class="input mono" min="0" max="1" step="0.02" value="0.00">
                                 </div>
                                 <div>
-                                    <span style="font-size: 11px; color: var(--text-muted);">ELA+2D-FFT</span>
-                                    <input type="number" id="wEla" class="input mono" min="0" max="1" step="0.05" value="0.15">
+                                    <span style="font-size: 11px; color: var(--text-muted);">ELA + 2D-FFT</span>
+                                    <input type="number" id="wEla" class="input mono" min="0" max="1" step="0.02" value="0.00">
                                 </div>
                             </div>
                         </div>
@@ -911,10 +931,13 @@
             });
 
             document.getElementById('cfgThreshold').value = Number(cfg.decision_threshold || 0.5).toFixed(2);
+            document.getElementById('cfgEnsembleMode').value = cfg.ensemble_mode || 'noisy_or';
             const w = cfg.ensemble_weights || {};
-            document.getElementById('wVit').value = w.vit ?? 0.55;
-            document.getElementById('wResnet').value = w.resnet18 ?? 0.30;
-            document.getElementById('wEla').value = w.ela ?? 0.15;
+            document.getElementById('wSmaug').value = w.smaug ?? 0.96;
+            document.getElementById('wVit').value = w.vit ?? 0.92;
+            document.getElementById('wDetectra').value = w.detectra ?? 0.65;
+            document.getElementById('wResnet').value = w.resnet18 ?? 0.00;
+            document.getElementById('wEla').value = w.ela ?? 0.00;
 
             const ckptBody = document.getElementById('checkpointsBody');
             ckptBody.innerHTML = '';
@@ -988,8 +1011,11 @@
                 enabled_algorithms: enabled,
                 default_algorithm: document.getElementById('cfgDefaultAlgo').value,
                 decision_threshold: Number(document.getElementById('cfgThreshold').value),
+                ensemble_mode: document.getElementById('cfgEnsembleMode').value,
                 ensemble_weights: {
+                    smaug: Number(document.getElementById('wSmaug').value),
                     vit: Number(document.getElementById('wVit').value),
+                    detectra: Number(document.getElementById('wDetectra').value),
                     resnet18: Number(document.getElementById('wResnet').value),
                     ela: Number(document.getElementById('wEla').value)
                 }
