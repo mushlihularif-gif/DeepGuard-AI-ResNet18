@@ -132,6 +132,25 @@
              TAB 2: MANAJEMEN DATASET (MULTI-FILE + BULK ZIP + AUTO-SPLIT + GALERI)
              ================================================================= -->
         <section id="pane-dataset" class="tab-pane">
+            <!-- Alur Cepat Tambah Dataset -->
+            <div class="quickstart-grid">
+                <div class="quickstart-step">
+                    <div class="quickstart-num">LANGKAH 1 · TAMBAH DATA</div>
+                    <div class="quickstart-title">Unggah Gambar atau Arsip .ZIP</div>
+                    <div class="quickstart-desc">Unggah banyak foto sekaligus (JPG/PNG/WebP) atau impor 1 arsip <code>.zip</code> berisi folder <code>real/</code> dan <code>fake/</code> (maks. 60 MB).</div>
+                </div>
+                <div class="quickstart-step">
+                    <div class="quickstart-num">LANGKAH 2 · KURASI &amp; SEIMBANGKAN</div>
+                    <div class="quickstart-title">Periksa Label &amp; Auto-Split 80/20</div>
+                    <div class="quickstart-desc">Gunakan tombol <strong>⇄</strong> pada galeri untuk memindahkan gambar salah label (REAL ↔ FAKE), lalu klik <strong>Auto-Split 80/20</strong>.</div>
+                </div>
+                <div class="quickstart-step">
+                    <div class="quickstart-num">LANGKAH 3 · LATIH MODEL</div>
+                    <div class="quickstart-title">Fine-Tune di Tab 3 (Training)</div>
+                    <div class="quickstart-desc">Buka tab <strong>3. Training</strong>, pilih arsitektur CNN, jalankan pelatihan GPU, lalu aktifkan checkpoint terbaiknya di Tab 4.</div>
+                </div>
+            </div>
+
             <div class="grid-4" style="margin-bottom: 18px;">
                 <div class="kpi-card">
                     <div class="kpi-label"><span>Total Citra Dataset</span><span class="chip">DISK</span></div>
@@ -425,6 +444,25 @@
              TAB 4: TAMBAH ALGORITMA BARU (HF HUB / .PT / .ONNX) & KONFIGURASI
              ================================================================= -->
         <section id="pane-algorithms" class="tab-pane">
+            <!-- Alur Cepat Tambah Algoritma -->
+            <div class="quickstart-grid">
+                <div class="quickstart-step">
+                    <div class="quickstart-num">JALUR A · HUGGINGFACE HUB</div>
+                    <div class="quickstart-title">Impor Otomatis 1-Klik / Repo ID</div>
+                    <div class="quickstart-desc">Klik preset cepat atau ketik Repo ID <code>image-classification</code> HuggingFace, sistem otomatis mengunduh, memuat ke GPU, dan memunculkannya di User.</div>
+                </div>
+                <div class="quickstart-step">
+                    <div class="quickstart-num">JALUR B · UNGGAH FILE LOKAL</div>
+                    <div class="quickstart-title">Hot-Load Model .PT / .ONNX</div>
+                    <div class="quickstart-desc">Unggah file checkpoint PyTorch (<code>.pt</code>) atau <code>.onnx</code> milik tim, validasi otomatis, lalu langsung aktif di menu pilihan algoritma user.</div>
+                </div>
+                <div class="quickstart-step">
+                    <div class="quickstart-num">JALUR C · SAKELAR &amp; ENSEMBLE</div>
+                    <div class="quickstart-title">Atur Default, Bobot &amp; Ambang AI</div>
+                    <div class="quickstart-desc">Aktif/nonaktifkan algoritma yang tampil di halaman user, ubah algoritma default, atau sesuaikan bobot fusi <strong>Bayesian Noisy-OR</strong>.</div>
+                </div>
+            </div>
+
             <div class="grid-2" style="align-items: start; margin-bottom: 18px;">
 
                 <!-- LEFT: TAMBAH ALGORITMA BARU (HF HUB & UPLOAD LOKAL) -->

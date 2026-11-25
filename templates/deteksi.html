@@ -45,18 +45,61 @@
             </div>
         </div>
 
-        <!-- Algorithm Selector Toolbar (Synced live with Admin Settings) -->
-        <div class="algo-toolbar">
-            <span class="algo-toolbar-label">Algoritma:</span>
-            <div class="algo-tabs" id="algoTabs">
+        <!-- Upgraded Interactive Algorithm Command Deck (Synced live with Admin Settings) -->
+        <section class="algo-deck" aria-label="Pemilihan Algoritma Deteksi">
+            <div class="algo-deck-head">
+                <div class="algo-deck-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+                    <span>Pilih Mesin Deteksi &amp; Algoritma</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span class="chip chip-real" id="algoCountChip">{{ model_info.enabled_count }} MESIN AKTIF</span>
+                    <span class="mono" style="font-size: 11px; color: var(--text-muted);" id="algoSwitchHint">Pilih sebelum atau sesudah pindai untuk perbandingan instan</span>
+                </div>
+            </div>
+
+            <div class="algo-cards-grid" id="algoTabs">
                 {% for algo in model_info.available_algorithms %}
-                <button type="button" class="algo-tab {% if algo.is_default %}active{% endif %}" data-algo="{{ algo.id }}" data-name="{{ algo.name }}">
-                    <span>{{ algo.name }}</span>
-                    <span class="algo-tab-type">{{ algo.type }}</span>
+                <button type="button"
+                        class="algo-card algo-tab {% if algo.is_default %}active{% endif %}"
+                        data-algo="{{ algo.id }}"
+                        data-name="{{ algo.name }}"
+                        data-desc="{{ algo.description }}"
+                        data-input="{{ algo.input_size }}"
+                        data-gradcam="{{ '1' if algo.supports_gradcam else '0' }}">
+                    <div class="algo-card-top">
+                        <span class="algo-card-name">
+                            <span class="algo-active-dot"></span>
+                            <span>{{ algo.name }}</span>
+                        </span>
+                        {% if algo.id == 'ensemble' %}
+                        <span class="algo-card-badge badge-best">TERBAIK{% if algo.accuracy %} · {{ algo.accuracy }}%{% endif %}</span>
+                        {% elif algo.accuracy %}
+                        <span class="algo-card-badge badge-acc">{{ algo.accuracy }}%</span>
+                        {% elif not algo.is_builtin %}
+                        <span class="algo-card-badge badge-custom">CUSTOM</span>
+                        {% else %}
+                        <span class="algo-card-badge badge-signal">SINYAL</span>
+                        {% endif %}
+                    </div>
+                    <div class="algo-card-meta">
+                        <span>{{ algo.type }}</span>
+                        <span>{{ algo.input_size }}{% if algo.input_size is number %} px{% endif %}</span>
+                    </div>
+                    <div class="algo-live-pill hidden" id="algoLive-{{ algo.id }}"></div>
                 </button>
                 {% endfor %}
             </div>
-        </div>
+
+            <div class="algo-summary-bar" id="algoSummaryBar">
+                <span id="algoSummaryDesc">
+                    {% for algo in model_info.available_algorithms %}{% if algo.is_default %}<strong>{{ algo.name }}:</strong> {{ algo.description }}{% endif %}{% endfor %}
+                </span>
+                <span class="mono" id="algoSummarySpec" style="font-size: 11px; color: var(--text-muted);">
+                    Ambang Keputusan: {{ '%.0f%%'|format(model_info.decision_threshold * 100) }}
+                </span>
+            </div>
+        </section>
 
         <!-- Symmetrical Two-Column Forensic Workspace -->
         <div class="workspace-grid">
@@ -407,6 +450,70 @@
             });
         });
 
+        function clearAlgoLivePills() {
+            document.querySelectorAll('.algo-live-pill').forEach(p => {
+                p.textContent = '';
+                p.className = 'algo-live-pill hidden';
+            });
+        }
+
+        function updateAlgoSummaryFromCard(btn) {
+            const descEl = document.getElementById('algoSummaryDesc');
+            if (!btn || !descEl) return;
+            descEl.textContent = '';
+            const strong = document.createElement('strong');
+            strong.textContent = (btn.dataset.name || btn.dataset.algo || 'Model') + ': ';
+            descEl.appendChild(strong);
+            descEl.appendChild(document.createTextNode(btn.dataset.desc || 'Mesin deteksi forensik citra aktif.'));
+        }
+
+        function switchDisplayedAlgorithm(algoId) {
+            activeAlgorithm = algoId;
+            let matchedBtn = null;
+            document.querySelectorAll('.algo-tab').forEach(t => {
+                const isMatch = t.dataset.algo === algoId;
+                t.classList.toggle('active', isMatch);
+                if (isMatch) matchedBtn = t;
+            });
+            if (matchedBtn) updateAlgoSummaryFromCard(matchedBtn);
+
+            // Instant 0ms switch using already-computed comparison scores when available!
+            if (lastResponse && lastResponse.comparison && lastResponse.comparison[algoId]) {
+                const row = lastResponse.comparison[algoId];
+                const threshold = Number(lastResponse.decision_threshold || activeThreshold || 0.5);
+                const rowIsFake = row.prob_fake >= threshold;
+                const updatedFindings = (lastResponse.key_findings || []).map((f, idx) => {
+                    if (idx === 0 && (f.category === 'Klasifikasi' || f.category === 'Konsensus')) {
+                        return {
+                            ...f,
+                            status: rowIsFake ? 'warn' : 'ok',
+                            title: 'Klasifikasi ' + row.name,
+                            metric: fmtPct(row.prob_fake) + ' AI / ' + fmtPct(row.prob_real) + ' Asli',
+                            detail: rowIsFake
+                                ? 'Mesin ' + row.name + ' mendeteksi pola sintetis Generative AI melampaui ambang ' + Math.round(threshold * 100) + '%.'
+                                : 'Mesin ' + row.name + ' mengklasifikasikan citra sebagai non-AI / foto alami di bawah ambang ' + Math.round(threshold * 100) + '%.',
+                        };
+                    }
+                    return f;
+                });
+                const switched = {
+                    ...lastResponse,
+                    algorithm: algoId,
+                    algorithm_name: row.name,
+                    prob_real: row.prob_real,
+                    prob_fake: row.prob_fake,
+                    inference_ms: row.latency_ms,
+                    binary_verdict: lastResponse.label === 'AI_DISCLOSED' ? 'AI_DISCLOSED' : (rowIsFake ? 'FAKE' : 'REAL'),
+                    key_findings: updatedFindings,
+                };
+                renderPredictionResult(switched);
+                return;
+            }
+            if (currentValidFile && lastResponse) {
+                executeAnalysis();
+            }
+        }
+
         function resetAll() {
             requestToken += 1;
             fileInput.value = '';
@@ -415,6 +522,7 @@
             lastResponse = null;
             hideError();
             setScanningUI(false);
+            clearAlgoLivePills();
 
             mediaViewport.classList.remove('has-image');
             uploadPrompt.classList.remove('hidden');
@@ -441,6 +549,7 @@
             hideError();
             lastResponse = null;
             setScanningUI(false);
+            clearAlgoLivePills();
             resetVisualLayers();
             activeResultPanel.classList.add('hidden');
             emptyResultState.classList.remove('hidden');
@@ -511,15 +620,10 @@
             if (e.dataTransfer.files && e.dataTransfer.files[0]) handleSelectedFile(e.dataTransfer.files[0]);
         });
 
-        // Algorithm Tab Selection (Dynamic + instant re-run if already scanned)
+        // Algorithm Card Selection (Instant 0ms switch if already scanned)
         function bindAlgorithmTab(btn) {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.algo-tab').forEach(t => t.classList.remove('active'));
-                btn.classList.add('active');
-                activeAlgorithm = btn.dataset.algo;
-                if (currentValidFile && lastResponse) {
-                    executeAnalysis();
-                }
+                switchDisplayedAlgorithm(btn.dataset.algo);
             });
         }
         document.querySelectorAll('.algo-tab').forEach(bindAlgorithmTab);
@@ -728,11 +832,12 @@
                 findingsList.appendChild(el);
             });
 
-            // Multi-Algorithm Comparison Table (Interactive Row Switch!)
+            // Multi-Algorithm Comparison Table + Live Per-Card Score Pills (Instant Switch!)
             const tbody = document.getElementById('comparisonTableBody');
             tbody.innerHTML = '';
             const compMap = data.comparison || {};
-            const order = ['ensemble', 'smaug', 'detectra', 'vit', 'resnet18', 'ela', ...Object.keys(compMap).filter(k => !['ensemble', 'smaug', 'detectra', 'vit', 'resnet18', 'ela'].includes(k))];
+            const preferred = ['ensemble', 'smaug', 'siglip2', 'vit', 'detectra', 'convnext_tiny', 'resnet18', 'ela'];
+            const order = [...preferred, ...Object.keys(compMap).filter(k => !preferred.includes(k))];
             const rendered = new Set();
 
             order.forEach(algoId => {
@@ -741,9 +846,24 @@
                 if (row.enabled === false && algoId !== data.algorithm) return;
                 rendered.add(algoId);
 
+                const rowFake = row.prob_fake >= threshold;
+
+                // Populate live score pill directly on the Algorithm Command Deck card!
+                const livePill = document.getElementById('algoLive-' + algoId);
+                if (livePill) {
+                    livePill.className = 'algo-live-pill ' + (rowFake ? 'live-fake' : 'live-real');
+                    livePill.textContent = '';
+                    const lblSpan = document.createElement('span');
+                    lblSpan.textContent = rowFake ? 'AI' : 'ASLI';
+                    const pctSpan = document.createElement('span');
+                    pctSpan.textContent = fmtPct(rowFake ? row.prob_fake : row.prob_real);
+                    livePill.appendChild(lblSpan);
+                    livePill.appendChild(pctSpan);
+                }
+
                 const tr = document.createElement('tr');
                 tr.className = 'clickable-row' + (algoId === data.algorithm ? ' row-active' : '');
-                tr.title = 'Klik untuk menampilkan hasil detail dari ' + row.name;
+                tr.title = 'Klik untuk langsung menampilkan hasil dari ' + row.name;
 
                 const tdName = document.createElement('td');
                 const strong = document.createElement('strong');
@@ -776,7 +896,6 @@
 
                 const tdVerdict = document.createElement('td');
                 const vChip = document.createElement('span');
-                const rowFake = row.prob_fake >= threshold;
                 vChip.className = 'chip ' + (rowFake ? 'chip-fake' : 'chip-real');
                 vChip.textContent = rowFake ? 'AI' : 'NON-AI';
                 tdVerdict.appendChild(vChip);
@@ -784,11 +903,7 @@
                 tr.append(tdName, tdReal, tdFake, tdMs, tdVerdict);
                 tr.addEventListener('click', () => {
                     if (algoId === activeAlgorithm) return;
-                    activeAlgorithm = algoId;
-                    document.querySelectorAll('.algo-tab').forEach(t => {
-                        t.classList.toggle('active', t.dataset.algo === algoId);
-                    });
-                    executeAnalysis();
+                    switchDisplayedAlgorithm(algoId);
                 });
                 tbody.appendChild(tr);
             });

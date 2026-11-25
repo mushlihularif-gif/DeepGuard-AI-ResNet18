@@ -38,6 +38,7 @@ dataset/*
 models/candidate*.pt
 models/community_forensics.safetensors
 models/smaug/
+models/siglip2/
 models/detectra_openfake.onnx
 models/trained_*.pt
 models/custom_*

@@ -1,49 +1,157 @@
 {
-  "dataset": "CommunityForensics-Eval Cross-Domain (FLUX-dev, Imagen3, Midjourney v5/v6, Ideogram v2, Firefly 2, DALL-E 2, Hourglass + Real)",
+  "dataset": "Combined Unseen Multi-Generator Eval (84 CommunityForensics + 160 OpenFake 2026: GPT-Image 1.5, Midjourney 7, FLUX.2, Imagen 3/4, Sora 2, Seedream 5, Ideogram 2, Firefly 2 + Real)",
   "n": 84,
+  "n_openfake_2026": 160,
+  "n_total_unseen": 244,
   "models": {
-    "ensemble_noisy_or": {
-      "accuracy": 98.8,
-      "balanced_accuracy": 99.0,
-      "real_fpr": 0.0,
-      "ai_recall": 98.1,
-      "confusion": [[32, 0], [1, 51]],
-      "jpeg75_accuracy": 94.0,
-      "jpeg75_balanced_accuracy": 95.2,
-      "jpeg75_real_fpr": 0.0,
-      "jpeg75_ai_recall": 90.4
-    },
     "smaug": {
       "accuracy": 92.9,
       "balanced_accuracy": 94.2,
       "real_fpr": 0.0,
       "ai_recall": 88.5,
-      "confusion": [[32, 0], [6, 46]],
-      "avg_ms": 398.6
+      "confusion": [
+        [
+          32,
+          0
+        ],
+        [
+          6,
+          46
+        ]
+      ],
+      "avg_ms": 474.9,
+      "jpeg75_accuracy": 82.1,
+      "jpeg75_real_fpr": 0.0,
+      "openfake2026_accuracy": 95.6,
+      "openfake2026_real_fpr": 2.5,
+      "combined244_accuracy": 94.7,
+      "combined244_real_fpr": 1.8
     },
     "vit": {
-      "accuracy": 91.7,
-      "balanced_accuracy": 93.3,
+      "accuracy": 95.2,
+      "balanced_accuracy": 96.2,
       "real_fpr": 0.0,
-      "ai_recall": 86.5,
-      "confusion": [[32, 0], [7, 45]],
-      "avg_ms": 24.8
+      "ai_recall": 92.3,
+      "confusion": [
+        [
+          32,
+          0
+        ],
+        [
+          4,
+          48
+        ]
+      ],
+      "avg_ms": 90.0,
+      "jpeg75_accuracy": 85.7,
+      "jpeg75_real_fpr": 0.0,
+      "openfake2026_accuracy": 65.6,
+      "openfake2026_real_fpr": 0.0,
+      "combined244_accuracy": 75.8,
+      "combined244_real_fpr": 0.0
     },
     "detectra": {
       "accuracy": 88.1,
       "balanced_accuracy": 89.8,
       "real_fpr": 3.1,
       "ai_recall": 82.7,
-      "confusion": [[31, 1], [9, 43]],
-      "avg_ms": 254.2
+      "confusion": [
+        [
+          31,
+          1
+        ],
+        [
+          9,
+          43
+        ]
+      ],
+      "avg_ms": 413.8,
+      "jpeg75_accuracy": 86.9,
+      "jpeg75_real_fpr": 0.0,
+      "openfake2026_accuracy": 91.2,
+      "openfake2026_real_fpr": 2.5,
+      "combined244_accuracy": 90.2,
+      "combined244_real_fpr": 2.7
+    },
+    "convnext_tiny": {
+      "accuracy": 54.8,
+      "balanced_accuracy": 55.6,
+      "real_fpr": 40.6,
+      "ai_recall": 51.9,
+      "confusion": [
+        [
+          19,
+          13
+        ],
+        [
+          25,
+          27
+        ]
+      ],
+      "avg_ms": 19.0,
+      "jpeg75_accuracy": 56.0,
+      "jpeg75_real_fpr": 40.6,
+      "openfake2026_accuracy": 78.8,
+      "openfake2026_real_fpr": 8.8,
+      "combined244_accuracy": 70.5,
+      "combined244_real_fpr": 17.9
     },
     "resnet18": {
-      "accuracy": 57.1,
-      "balanced_accuracy": 58.8,
-      "real_fpr": 34.4,
-      "ai_recall": 51.9,
-      "confusion": [[21, 11], [25, 27]],
-      "avg_ms": 8.7
+      "accuracy": 53.6,
+      "balanced_accuracy": 53.5,
+      "real_fpr": 46.9,
+      "ai_recall": 53.8,
+      "confusion": [
+        [
+          17,
+          15
+        ],
+        [
+          24,
+          28
+        ]
+      ],
+      "avg_ms": 13.1,
+      "jpeg75_accuracy": 53.6,
+      "jpeg75_real_fpr": 43.8,
+      "openfake2026_accuracy": 73.8,
+      "openfake2026_real_fpr": 21.2,
+      "combined244_accuracy": 66.8,
+      "combined244_real_fpr": 28.6
+    },
+    "ensemble_noisy_or": {
+      "accuracy": 98.8,
+      "balanced_accuracy": 99.0,
+      "real_fpr": 0.0,
+      "ai_recall": 98.1,
+      "confusion": [
+        [
+          32,
+          0
+        ],
+        [
+          1,
+          51
+        ]
+      ],
+      "avg_ms": 978.6,
+      "jpeg75_accuracy": 94.0,
+      "jpeg75_balanced_accuracy": 95.2,
+      "jpeg75_real_fpr": 0.0,
+      "jpeg75_ai_recall": 90.4,
+      "openfake2026_accuracy": 95.0,
+      "openfake2026_balanced_accuracy": 95.0,
+      "openfake2026_real_fpr": 6.2,
+      "openfake2026_ai_recall": 96.2,
+      "combined244_accuracy": 96.3,
+      "combined244_balanced_accuracy": 96.3,
+      "combined244_real_fpr": 4.5,
+      "combined244_ai_recall": 97.0,
+      "weights": {
+        "smaug": 0.96,
+        "vit": 0.92,
+        "detectra": 0.65
+      }
     }
   }
 }

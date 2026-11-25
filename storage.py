@@ -13,9 +13,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 DEFAULT_CONFIG = {
     "default_algorithm": "ensemble",
     "decision_threshold": 0.50,
-    "enabled_algorithms": ["ensemble", "smaug", "detectra", "vit", "resnet18", "ela"],
+    "enabled_algorithms": ["ensemble", "smaug", "detectra", "vit", "convnext_tiny", "resnet18", "ela"],
     "ensemble_mode": "noisy_or",
-    "ensemble_weights": {"smaug": 0.96, "vit": 0.92, "detectra": 0.65, "resnet18": 0.0, "ela": 0.0},
+    "ensemble_weights": {"smaug": 0.96, "vit": 0.92, "detectra": 0.65, "convnext_tiny": 0.0, "resnet18": 0.0, "ela": 0.0},
     "active_resnet_checkpoint": "models/resnet18_model.pt",
 }
 
